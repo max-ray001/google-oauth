@@ -11,8 +11,6 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-from auth.testauth.testauth.settings import AUTHENTICATION_BACKENDS, REST_FRAMEWORK, SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE, SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
-
 # decouple から config をインポート
 from decouple import config
 
@@ -47,7 +45,7 @@ INSTALLED_APPS = [
     'drf_social_oauth2',
     'social_django',
     'oauth2_provider',
-    'corsgheaders',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
