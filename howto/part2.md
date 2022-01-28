@@ -1,4 +1,4 @@
-# Part2. Django設定
+# Part2. バックエンド作成
 
 ## 1. 仮想環境作成
 
@@ -180,7 +180,7 @@ $ vi .env
 ```
 
 ```:.env
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY="99058585498-xxxxxxxxxxxx.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY="499058585498-xxxxxxxxxxxx.apps.googleusercontent.com"
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET="GOCSxxxxxxxxxxxxnn3rV"
 ```
 
