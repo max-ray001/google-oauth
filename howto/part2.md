@@ -167,6 +167,9 @@ $ vi .env
 ```
 
 ```:.env
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=""
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=""
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY="99058585498-xxxxxxxxxxxx.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET="GOCSxxxxxxxxxxxxnn3rV"
 ```
+
+## 6. urlの設定
+
