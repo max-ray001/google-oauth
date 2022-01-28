@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     'drf_social_oauth2',
     'social_django',
     'oauth2_provider',
-    'corsgheaders',
+    'corsheaders',
 ]
 ```
 
@@ -160,6 +160,19 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 ]
 ```
 
+- (オプション)言語設定
+
+なにかと見やすいので日本語化しておく
+
+```py:backend/settings.py
+# Internationalization
+# https://docs.djangoproject.com/en/3.2/topics/i18n/
+
+LANGUAGE_CODE = 'ja'
+
+TIME_ZONE = 'Asia/Tokyo'
+```
+
 ## 5. 変数設定ファイル作成
 
 ```shell:backend
@@ -173,3 +186,50 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET="GOCSxxxxxxxxxxxxnn3rV"
 
 ## 6. urlの設定
 
+```py:backend/urls.py
+from django.contrib import admin
+from django.urls import path, include # include追加
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('auth/', include('drf_social_oauth2.urls', namespace='drf')), # 追加
+]
+```
+
+## 7. migrate, superuser作成
+
+```shell
+$ python manage.py migrate
+$ python manage.py createsuperuser --email=your.email@gmail.com --username=admin
+```
+
+## 8. 管理ページ 設定
+
+`http://127.0.0.1:8000/admin` にアクセスし、作成した管理ユーザでログイン
+
+1. Application を作成
+
+![Application](./images/create-application-1.png)
+
+Django OAuth Toolkit の Application を追加する
+
+2. 設定
+
+![Setting](./images/create-application-2.png)
+
+- `Client id` , `Client secret` の値は自動で作成されている。後ほど利用するのでどこかメモ長に控えておく。
+- その他以下の通り設定し、保存
+  - User : 1
+  - Client type : Confidental
+  - Authorization grant type : Resource owner password-based
+  - Name : 適当に入力(自分はGoogle OAuth)にした
+
+## 9. DRF確認
+
+`http://127.0.0.1:8000/auth/convert-token` にアクセスしてみて、↓の画面が表示されればいったんOK!
+
+![Convert-Token](./images/create-application-3.png)
+
+# バックエンド設定完了
+
+[フロントエンド設定へ](./part3.md)
