@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from auth.testauth.testauth.settings import AUTHENTICATION_BACKENDS, REST_FRAMEWORK, SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE, SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET
+
+# decouple から config をインポート
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,6 +63,12 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
+# React との CORS の設定
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000" # Reactはport:3000を利用
+]
+
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
@@ -72,9 +82,45 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                # 以下追加
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
+]
+
+# REST framework 設定
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'drf_social_oauth2.authentication.SocialAuthentication',
+    ),
+}
+
+AUTHENTICATION_BACKENDS = (
+    # Google OAuth2 の認証バックエンド
+    'social_core.backends.google.GoogleOAuth2',
+
+    # Django REST framework の認証バックエンド
+    'drf_social_oauth2.backends.DjangoOAuth2',
+
+    # Django の認証バックエンド
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+# Google から取得した鍵情報
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
+
+# アクセススコープの設定
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
@@ -113,9 +159,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ja'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tokyo'
 
 USE_I18N = True
 
