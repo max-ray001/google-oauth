@@ -79,26 +79,36 @@ function App() {
 
 - 認証成功時の関数作成(=onSuccess)
 
+App()内に追加していきます
+
 ```js:App.js
-// 認証成功時の動作
-const handleGoogleLogin = (response) => {
-    axios
-        .post(`${baseURL}/auth/convert-token`, {
-            token: response.accessToken,
-            backend: "google-oauth2",
-            grant_type: "convert_token",
-            client_id: drfClientId,
-            client_secret: drfClientSecret,
-        })
-        .then((res) => {
-            const { access_token, refresh_token } = res.data;
-            console.log({ access_token, refresh_token });
-            localStorage.setItem("access_token", access_token);
-            localStorage.setItem("refresh_token", refresh_token);
-        })
-        .catch((err) => {
-            console.log("Error Google Login", err);
-        })
+function App() {
+
+  // 認証成功時の動作
+  const handleGoogleLogin = (response) => {
+  	console.log(response)
+  	axios
+    	.post(`${baseURL}/auth/convert-token`, {
+      	token: response.accessToken,
+      	backend: "google-oauth2",
+      	grant_type: "convert_token",
+      	client_id: drfClientId,
+      	client_secret: drfClientSecret,
+    	})
+    	.then((res) => {
+      	const { access_token, refresh_token } = res.data;
+      	console.log({ access_token, refresh_token });
+      	localStorage.setItem("access_token", access_token);
+      	localStorage.setItem("refresh_token", refresh_token);
+    	})
+    	.catch((err) => {
+      	console.log("Error Google Login", err);
+    	})
+  }
+
+	return (
+    // 略
+  );
 }
 ```
 
