@@ -1,7 +1,7 @@
 # Part3. フロントエンド作成
 
 [前パート](./part2.md)で起動したDjangoは起動したままにして、
-新しいターミナルを開いて作業する
+新しいターミナルを開いて作業します
 
 ## 1. React プロジェクト作成
 
@@ -17,10 +17,13 @@ $ cd frontend
 $ npm i react-google-login axios
 ```
 
+- react-google-login : ReactでGoogleLogin関連の便利なツールを提供してくれます facebookのやつとかもあるので、余力があれば導入しよう
+- axios : HTTPクライアントです DRFのAPIをたたくのに使います fetchでもいいと思います
+
 ## 3. .env作成
 
 Google Cloudで発行したOIDC鍵の`CLIENT_ID`と、
-[さっき](./part2#管理ページ)Djangoの管理画面で作成したApplicationに記載されていた`Client d`,`Client secret`を入力
+[さっき](./part2#管理ページ)Djangoの管理画面で作成したApplicationに記載されていた`Client d`,`Client secret`を変数として格納します
 
 ```sh
 $ vi .env
@@ -31,6 +34,8 @@ REACT_APP_DRF_CLIENT_RECRET=Taj1m0q8QXlGmTDr3IJasuEVJ1M2n7dxxxx
 ```
 
 ## 4. フロント画面作成
+
+いよいよボタンを画面に表示していきます
 
 - ライブラリインポート
 
@@ -123,5 +128,9 @@ DRFで変換されたToken情報がコンソールに出てくる
 
 # フロントエンド完了
 
-これにてReact,DRFとの連携が完了した
-[次のパート](./part4.md)でユーザ情報表示とログアウト処理を作る
+お疲れ様です！
+
+これにてReact,DRFとの連携が完了です
+後はJWTの情報をもとにあれやこれやフロントで表示したりするだけですね
+
+[次のパート](./part4.md)ではユーザ情報表示とログアウト処理を作っていきます

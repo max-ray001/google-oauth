@@ -24,6 +24,10 @@ python-decouple
 django-cors-headers
 ```
 
+drf_social_oauth2 : DRFでOAuth2の機能を利用するために必要
+python_decouple : .envファイルからデータを取り出すときに必要
+django-cors-headers : reactとの連携に必要
+
 - install実行
 
 ```shell
@@ -175,6 +179,11 @@ TIME_ZONE = 'Asia/Tokyo'
 
 ## 5. 変数設定ファイル作成
 
+GoogleCloudで取得した認証情報のID,シークレットを変数として保存します
+.envファイルを作成しましょう
+
+※プロジェクトのルート(manage.py と同じ階層)に作成します
+
 ```shell:backend
 $ vi .env
 ```
@@ -217,12 +226,12 @@ Django OAuth Toolkit の Application を追加する
 
 ![Setting](./images/create-application-2.png)
 
-- `Client id` , `Client secret` の値は自動で作成されている。後ほど利用するのでどこかメモ長に控えておく。
+- `Client id` , `Client secret` の値は自動で作成されています 後ほど利用するのでどこかメモ帳に控えておきましょう(※値を変更しないよう注意してください)
 - その他以下の通り設定し、保存
   - User : 1
   - Client type : Confidental
   - Authorization grant type : Resource owner password-based
-  - Name : 適当に入力(自分はGoogle OAuth)にした
+  - Name : 適当に入力(自分はGoogle OAuthにしました)
 
 ## 9. DRF確認
 
