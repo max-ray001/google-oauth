@@ -33,16 +33,16 @@ function App() {
 			console.log("Error Google Login", err);
 		})
 	}
-	
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Google OAuth Test</h1>
         <GoogleLogin
-            clientId={googleClientId}
-            buttonText="Googleアカウントでログイン"
-            onSuccess={(response) => handleGoogleLogin(response)}
-            onFailure={(err) => console.log("Google Login failed", err)}
+					clientId={googleClientId}
+					buttonText="Googleアカウントでログイン"
+					onSuccess={(response) => handleGoogleLogin(response)}
+					onFailure={(err) => console.log("Google Login failed", err)}
         ></GoogleLogin>
       </header>
     </div>
