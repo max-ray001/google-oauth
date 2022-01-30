@@ -39,14 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # apps
+    'users',
 
-    # 以下追加
+    # installed library
     'rest_framework',
     'drf_social_oauth2',
     'social_django',
     'oauth2_provider',
     'corsheaders',
 ]
+
+AUTH_USER_MODEL = 'users.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -57,7 +61,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    # 以下追加
+    # installed library
     'corsheaders.middleware.CorsMiddleware',
 ]
 
@@ -81,7 +85,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
 
-                # 以下追加
+                # installed library
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
             ],
