@@ -7,28 +7,28 @@ class CustomUserManager(BaseUserManager):
 	
 	use_in_migrations = True
 
-	def _create_user(self, email, password, **extra_fields):
-		if not email:
+	def _create_user(self, request_data, **extra_fields):
+		if not request_data['email']:
 			raise ValueError('emailを入力してください')
-		email = self.normalize_email(email)
-		user = self.model(email=email, **extra_fields)
-		user.set_password(password)
+		email = self.normalize_email(request_data['email'])
+		user = self.model(username=request_data['username'], email=email, **extra_fields)
+		user.set_password(request_data['password'])
 		user.save(using=self.db)
 		return user
 
-	def create_user(self, email, password=None, **extra_fields):
+	def create_user(self, request_data, **extra_fields):
 		extra_fields.setdefault('is_staff', False)
 		extra_fields.setdefault('is_superuser', False)
-		return self._create_user(email, password, **extra_fields)
+		return self._create_user(request_data, **extra_fields)
 	
-	def create_superuser(self, email, password, **extra_fields):
+	def create_superuser(self, request_data, **extra_fields):
 		extra_fields.setdefault('is_staff', True)
 		extra_fields.setdefault('is_superuser', True)
 		if extra_fields.get('is_staff') is not True:
 			raise ValueError('staff=Falseになっています')
 		if extra_fields.get('is_superuser') is not True:
 			raise ValueError('is_superuser=Falseになっています')
-		return self._create_user(email, password, **extra_fields)
+		return self._create_user(request_data, **extra_fields)
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):

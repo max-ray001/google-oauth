@@ -18,23 +18,24 @@ $ python manage.py startapp users
 - models.py
 
 作成したusersのmodels.pyを作成していきます
+※USERNAME_FIELDは、`email`にするとUNIQUE contraintのエラーが出てうまく動作しなかったので、usernameにしてます...
 
 ```py:users/models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 
-class User(AbstractBaseUser, PermissionsMixin):
-	email = models.EmailField('email', unique=True)
-	username = models.CharField('username', max_length=150)
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+	email = models.EmailField('email', null=True)
+	username = models.CharField('username', unique=True, max_length=150)
 	is_staff = models.BooleanField('is_staff', default=False)
 	is_active = models.BooleanField('is_active', default=True)
 	date_joined = models.DateTimeField('date_joined', default=timezone.now)
 
 	objects=CustomUserManager()
 
-	USERNAME_FIELD = 'email'
+	USERNAME_FIELD = 'username'
 	EMAIL_FIELD = 'email'
-	REQUIRED_FIELDS = []
+	REQUIRED_FIELDS = ['email']
 
 	class Meta:
 		verbose_name = "user"
@@ -50,7 +51,7 @@ class CustomUserManager(BaseUserManager):
 	
 	use_in_migrations = True
 
-	def _create_user(self, email, password, **extra_fields):
+	def _create_user(self, username, email, password, **extra_fields):
 		if not email:
 			raise ValueError('emailを入力してください')
 		email = self.normalize_email(email)
@@ -59,19 +60,19 @@ class CustomUserManager(BaseUserManager):
 		user.save(using=self.db)
 		return user
 
-	def create_user(self, email, password=None, **extra_fields):
+	def create_user(self, username, email, password=None, **extra_fields):
 		extra_fields.setdefault('is_staff', False)
 		extra_fields.setdefault('is_superuser', False)
-		return self._create_user(email, password, **extra_fields)
+		return self._create_user(username, email, password, **extra_fields)
 	
-	def create_superuser(self, email, password, **extra_fields):
+	def create_superuser(self, username, email, password, **extra_fields):
 		extra_fields.setdefault('is_staff', True)
 		extra_fields.setdefault('is_superuser', True)
 		if extra_fields.get('is_staff') is not True:
 			raise ValueError('staff=Falseになっています')
 		if extra_fields.get('is_superuser') is not True:
 			raise ValueError('is_superuser=Falseになっています')
-		return self._create_user(email, password, **extra_fields)
+		return self._create_user(username, email, password, **extra_fields)
 
 class User():
 	# 略
@@ -95,6 +96,11 @@ $ python manage.py migrate
 $ python manage.py createsuperuser
 Email: # ←Emailを要求されればカスタムユーザマネージャがしっかりつかえてる!
 ```
+
+- drftoken再登録
+
+DBを消しちゃったので、[part2](./part2.md#管理ページ)で作成した`Application`がなくなってます
+**再作成して、.envファイルの変更を忘れず行いましょう**
 
 - Adminサイトで確認できるようにする
 
@@ -241,4 +247,145 @@ X-Frame-Options: DENY
 ![TestingAPI](./images/testing_api.png)
 
 管理用に作成したユーザが返ってきたら成功です
+
+## 4. ユーザ登録用エンドポイントを作成する
+
+### URLの作成
+
+ユーザ登録を行う際のAPIのURLを指定・作成します
+
+```py:users/urls.py
+from django.urls import path, include
+from rest_framework import routers
+from . import views
+from .views import RegisterUser
+
+router = routers.DefaultRouter()
+router.register(r'users', views.UserViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('register/', RegisterUser.as_view()),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+]
+```
+
+### Viewの作成
+
+URLで指定したように、`RegisterUser`というViewを作成します
+変更箇所が`#`です
+
+```py:users/views.py
+from .models import CustomUser
+from django.db import transaction #
+from .serializers import RegisterUserSerializer, UserSerializer #
+from rest_framework import viewsets, permissions, generics, status #
+from rest_framework.response import Response #
+
+class UserViewSet(viewsets.ModelViewSet):
+    ## 略
+
+class RegisterUser(generics.CreateAPIView):
+    permission_classes = [permissions.AllowAny]
+    queryset = CustomUser.objects.all()
+    serializer_class = RegisterUserSerializer
+
+    @transaction.atomic
+    def post(self, request):
+        serializer = RegisterUserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+- permission_classes : ユーザ登録は承認されてない状態で行われるはずなので、AllowAnyにします
+- generics : ViewSetより細かくメソッドを定義したい場合などはgenericsを使います 公式チュートリアル参照
+
+### Serializerの作成
+
+Viewで指定したように、`RegisterUserSerializer`というSerializerを作成します
+
+```py:users/serializers.py
+class RegisterUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'password']
+    
+    def create(self, validated_data):
+        return CustomUser.objects.create_user(request_data=validated_data)
+```
+
+viewで、`serializer.is_valid()`でserializerのデータが検証された後、
+serializerのデータが返されます
+返されたデータによってcreate_user関数が動き、ユーザ登録が済みます
+
+### modelのcreate_user関数あたりを変更
+
+基本的にReact-DRFを使ったAPIでユーザ作成を行っていくため、
+フォームの入力内容を元にユーザを作成するUserManagerクラスだと不便になります
+
+API経由ではusername,email,passwordといった情報は、
+Serializerで指定したように`request_data`としてまとまって引数に来ることになります
+
+なので、CustomUserManagerの引数と、引数から変数に値を入れる部分をrequest_dataに対応させます
+変更箇所が`#`です
+
+```py:users/models.py
+class CustomUserManager(BaseUserManager):
+	
+	use_in_migrations = True
+
+	def _create_user(self, request_data, **extra_fields): #
+		if not request_data['email']:
+			raise ValueError('emailを入力してください')
+		email = self.normalize_email(request_data['email']) #
+		user = self.model(username=request_data['username'], email=email, **extra_fields) #
+		user.set_password(request_data['password'])
+		user.save(using=self.db)
+		return user
+
+	def create_user(self, request_data, **extra_fields): #
+		extra_fields.setdefault('is_staff', False)
+		extra_fields.setdefault('is_superuser', False)
+		return self._create_user(request_data, **extra_fields)
+	
+	def create_superuser(self, request_data, **extra_fields): #
+		extra_fields.setdefault('is_staff', True)
+		extra_fields.setdefault('is_superuser', True)
+		if extra_fields.get('is_staff') is not True:
+			raise ValueError('staff=Falseになっています')
+		if extra_fields.get('is_superuser') is not True:
+			raise ValueError('is_superuser=Falseになっています')
+		return self._create_user(request_data, **extra_fields) #
+```
+
+### APIを試す
+
+ここまで出来たらUser登録がhttpリクエストでできるようになるはずです！
+
+```shell
+$ http POST http://127.0.0.1:8000/register/ username="new_user100" email="atarashii@userdayo.com" password="helloworld"
+
+HTTP/1.1 201 Created
+Allow: POST, OPTIONS
+Content-Length: 66
+Content-Type: application/json
+Date: Tue, 01 Feb 2022 16:34:26 GMT
+Referrer-Policy: same-origin
+Server: WSGIServer/0.2 CPython/3.6.8
+Vary: Accept, Origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+
+{
+    "email": "atarashii@userdayo.com",
+    "id": 7,
+    "username": "new_user100"
+}
+```
+
+201(created)レスポンスが返ってきましたね！ HTTPリクエストによる登録まではできました
 
