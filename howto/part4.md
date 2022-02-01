@@ -115,11 +115,11 @@ class CustomUserChangeForm(UserChangeForm):
 class CustomUserCreationForm(UserCreationForm):
 	class Meta:
 		model = CustomUser
-		fields = ('email',)
+		fields = ('username', 'email',)
 
 class CustomUserAdmin(UserAdmin):
 	fieldsets = (
-		(None, {'fields': ('email', 'password')}),
+		(None, {'fields': ('username', 'email', 'password')}),
 		(_('Permissions'), {
 			'fields': (
 				'is_active',
@@ -141,7 +141,7 @@ class CustomUserAdmin(UserAdmin):
 
 	change_form = CustomUserChangeForm
 	add_form = CustomUserCreationForm
-	list_display = ('email', 'is_staff')
+	list_display = ('username', 'email', 'is_staff')
 	list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
 	search_fields = ('email',)
 	ordering = ('email',)
@@ -150,25 +150,95 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 ```
 
-## 2. Serializerを作成
+## 2. Serializer & ViewSet を作成
 
-DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラスを作成します
+DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラス, ViewSetクラスを作成します
+`users/`配下に`serializers.py`という名前のファイルを新規作成して、↓のように書きます
 
 ```py:users/serializers.py
 from rest_framework import serializers
 from .models import CustomUser
 
-class UserCreationSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.HyperlinkedModelSerializer):
 	class Meta:
 		model = CustomUser
-		fields = ('email', 'password')
-		extra_kwargs={'password':{'write_only':True}}
-
-	def create(self, validated_data):
-		password = validated_data.pop('password', None)
-		new_user = self.Meta.model(**validated_data)
-		if password is not None:
-			new_user.set_password(password)
-		new_user.save()
-		return new_user
+		fields = ['username', 'email']
 ```
+
+続いてviews.pyを↓の通り作成します
+
+```py:users/views.py
+from .models import CustomUser
+from .serializers import UserSerializer
+from rest_framework import viewsets, permissions
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    queryset = CustomUser.objects.all()
+    permission_classes = [permissions.IsAuthenticated] # ←注目
+```
+
+## 3. APIテスト
+
+ここで、APIのテストをしてみます
+`httpie`というHTTPクライアントを使ってHTTPリクエストをDRFに送ってみましょう
+
+```sh
+$ pip install httpie
+
+$ http GET http://127.0.0.1:8000/users/
+HTTP/1.1 401 Unauthorized
+Allow: GET, POST, HEAD, OPTIONS
+Content-Length: 55
+Content-Type: application/json
+Date: Tue, 01 Feb 2022 12:41:34 GMT
+Referrer-Policy: same-origin
+Server: WSGIServer/0.2 CPython/3.6.8
+Vary: Accept, Origin
+WWW-Authenticate: Bearer realm="api"
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+
+{
+    "detail": "認証情報が含まれていません。"
+}
+```
+
+はい `401(Unauthorized)コード, 認証情報が含まれていません` と返ってきましたね
+
+これはなぜかというと、
+2.の`views.py`で、UserViewSetの`permission_class`を**IsAuthenticated**にしたためです
+これは、UserViewSetに対して操作(GET, PUT, UPDATE, DELETE..)を行えるのが、`認証されたユーザのみ`ということになります
+
+ではどうやって認証された状態でリクエストを送れるのか、、、
+ここでpart3.で発行できるようになった`access_token`を使うわけですね！！
+
+リクエストの`Authorization`ヘッダーに、Google認証→DRFトークン変換(convert-token)によって発行されたトークンをはっつけてリクエストを送ってみましょう
+`Authorization: Bearer <access_token>` でヘッダーを付与できます
+
+```sh
+$ http GET http://127.0.0.1:8000/users/ "Authorization: Bearer AfjU7es3nWC8gjXNbDQiz3EbMOBUI6"
+
+HTTP/1.1 200 OK
+Allow: GET, POST, HEAD, OPTIONS
+Content-Length: 161
+Content-Type: application/json
+Date: Tue, 01 Feb 2022 12:50:19 GMT
+Referrer-Policy: same-origin
+Server: WSGIServer/0.2 CPython/3.6.8
+Vary: Accept, Origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+
+[
+    {
+        "email": "hoge@gmail.com",
+        "username": "c0ba1t_coke"
+    }
+]
+```
+
+![TestingAPI](./images/testing_api.png)
+
+管理用に作成したユーザが返ってきたら成功です
+
