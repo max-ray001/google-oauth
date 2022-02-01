@@ -1,3 +1,4 @@
+from enum import unique
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin,BaseUserManager
@@ -31,17 +32,17 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-	email = models.EmailField('email', unique=True)
-	username = models.CharField('username', max_length=150)
+	email = models.EmailField('email', null=True)
+	username = models.CharField('username', unique=True, max_length=150)
 	is_staff = models.BooleanField('is_staff', default=False)
 	is_active = models.BooleanField('is_active', default=True)
 	date_joined = models.DateTimeField('date_joined', default=timezone.now)
 
 	objects=CustomUserManager()
 
-	USERNAME_FIELD = 'email'
+	USERNAME_FIELD = 'username'
 	EMAIL_FIELD = 'email'
-	REQUIRED_FIELDS = []
+	REQUIRED_FIELDS = ['email']
 
 	class Meta:
 		verbose_name = "user"

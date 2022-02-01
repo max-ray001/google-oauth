@@ -12,11 +12,11 @@ class CustomUserChangeForm(UserChangeForm):
 class CustomUserCreationForm(UserCreationForm):
 	class Meta:
 		model = CustomUser
-		fields = ('email',)
+		fields = ('username', 'email',)
 
 class CustomUserAdmin(UserAdmin):
 	fieldsets = (
-		(None, {'fields': ('email', 'password')}),
+		(None, {'fields': ('username', 'email', 'password')}),
 		(_('Permissions'), {
 			'fields': (
 				'is_active',
@@ -38,7 +38,7 @@ class CustomUserAdmin(UserAdmin):
 
 	change_form = CustomUserChangeForm
 	add_form = CustomUserCreationForm
-	list_display = ('email', 'is_staff')
+	list_display = ('username', 'email', 'is_staff')
 	list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
 	search_fields = ('email',)
 	ordering = ('email',)
