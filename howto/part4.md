@@ -389,3 +389,77 @@ X-Frame-Options: DENY
 
 201(created)レスポンスが返ってきましたね！ HTTPリクエストによる登録まではできました
 
+## 5. idToken(jwt)を検証・デコードする関数作成
+
+GoogleOAuthで入手したJWTを検証したりデコードしたりするのに便利なライブラリ、
+`google-auth`をインストールします
+
+```shell
+$ pip install --upgrade google-auth
+```
+
+### View関数作成
+
+```py:views.py
+from rest_framework.decorators import api_view, permission_classes
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from decouple import config
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def verifyToken(request):
+    req = requests.Request()
+    token = request.data['tokenId']
+    audience = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
+    user_google_info = id_token.verify_oauth2_token(token, req, audience)
+    return Response(user_google_info)
+```
+
+先ほどインストールした`google-auth`を使って検証&デコード処理を作ります
+
+- @api_view(['POST']) : 関数をAPIとして扱うためのデコレータです drfの機能
+- @permission_classes : api_viewでパーミッションの指定ができるようになるデコレータ
+
+- token = request.data['tokenId'] : 後でフロントでHTTPリクエストをたたく処理を作るときに、リクエストボディに`tokenId`を入れるようにします
+
+- id_token.verify_oauth2_token(token, request, audience) : この処理の核の部分です 第1引数のトークンを検証し、デコードしてくれます
+  - token : JWTトークンが入ります String
+  - request : [公式](https://google-auth.readthedocs.io/en/master/reference/google.oauth2.id_token.html)によると`google-auth`が様々なHTTPクライアントを受け付けるために必要みたいです
+  - audience : GCPで発行したOAuth2のClient_IDのことです
+
+- return Response(user_google_info) : ついに丸裸になったデータをフロントに返します
+
+### URL登録
+
+作ったViewにURLを振ります
+
+```py:/users/urls.py
+from django.urls import path, include
+from rest_framework import routers
+from . import views
+from .views import RegisterUser
+
+router = routers.DefaultRouter()
+router.register(r'users', views.UserViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('verify-token/', views.verifyToken, name='verify-token'), # 追加
+    path('register/', RegisterUser.as_view()),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+]
+```
+
+## 6. フロントからAPIをたたく
+
+- MIDDLE_WARE 修正
+
+corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設定がうまく動かなくなるため、
+上に持ってくる(上過ぎてもだめらしいのでcommonをcorsheaderの下に持ってきました)
+
+```py:settings.py
+    # installed library
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+```

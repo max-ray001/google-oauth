@@ -8,6 +8,7 @@ router.register(r'users', views.UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('verify-token/', views.verifyToken, name='verify-token'),
     path('register/', RegisterUser.as_view()),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
