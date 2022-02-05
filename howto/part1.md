@@ -1,5 +1,12 @@
 # Part1. Google認証情報作成
 
+## 0. 流れの理解
+
+このパートの流れは以下の通りです。
+
+1. GoogleCloud でプロジェクト作成
+2. DjangoアプリとGoogleCloudプロジェクトを結びつける認証情報の作成
+
 ## 1. Google Cloud でプロジェクト作成
 
 [GoogleCloud](https://console.cloud.google.com/) にアクセスし、サンプル用にプロジェクト作成します
