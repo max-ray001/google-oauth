@@ -1,4 +1,13 @@
-# ログイン→ユーザ情報表示 (React)
+# 認証→ユーザ情報表示 (React)
+
+## 0. 流れの理解
+
+このパートの流れは以下の通りです。
+
+1. convert-token関数 分離
+2. Google認証情報のデコード関数作成
+3. デコード関数を実行するフロント関数作成
+4. ユーザ情報表示
 
 ## 1. convert-token にPOSTを行う部分を切り抜く
 
@@ -6,29 +15,29 @@
 function App() {
 
   const convertToken = async (googleData) => {
-		const token = googleData.accessToken
-		return await axios
-			.post(`${baseURL}/auth/convert-token`, {
-				token: token,
-				backend: "google-oauth2",
-				grant_type: "convert_token",
-				client_id: drfClientId,
-				client_secret: drfClientSecret,
-			})
-			.then((res) => {
-				const { access_token, refresh_token } = res.data;
-				localStorage.setItem("access_token", access_token);
-				localStorage.setItem("refresh_token", refresh_token);
-				return access_token
-			})
-			.catch((err) => {
-				console.log("Error Google Login", err);
-			})
+	const token = googleData.accessToken
+	  return await axios
+		.post(`${baseURL}/auth/convert-token`, {
+		  token: token,
+		  backend: "google-oauth2",
+		  grant_type: "convert_token",
+		  client_id: drfClientId,
+		  client_secret: drfClientSecret,
+		})
+		.then((res) => {
+		  const { access_token, refresh_token } = res.data;
+		  localStorage.setItem("access_token", access_token);
+		  localStorage.setItem("refresh_token", refresh_token);
+		  return access_token
+		})
+		.catch((err) => {
+		  console.log("Error Google Login", err);
+		})
 	}
 
-	const handleGoogleLogin = (response) => {
+  const handleGoogleLogin = (response) => {
 
-	}
+  }
 
   return (
     // 略
@@ -56,10 +65,29 @@ GoogleOAuthで入手したJWTを検証したりデコードしたりするのに
 $ pip install --upgrade google-auth
 ```
 
+### アプリケーション追加
+
+```shell
+$ python manage.py startapp users
+```
+
+※後でカスタムユーザを作成予定なのでこのapp名にしました
+
+### アプリケーション登録
+
+```py:settings.py
+INSTALLED_APPS = [
+    # apps
+    'users',
+]
+```
+
 ### View関数作成
 
-```py:views.py
+```py:users/views.py
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from decouple import config
@@ -77,34 +105,45 @@ def verifyToken(request):
 先ほどインストールした`google-auth`を使って検証&デコード処理を作ります
 
 - @api_view(['POST']) : 関数をAPIとして扱うためのデコレータです drfの機能
-- @permission_classes : api_viewでパーミッションの指定ができるようになるデコレータ
+- @permission_classes : api_viewでパーミッションの指定ができるようになるデコレータ 
+  - IsAuthenticatedに設定して、認証情報がなければ実行できないようにします
 
-- token = request.data['tokenId'] : 後でフロントでHTTPリクエストをたたく処理を作るときに、リクエストボディに`tokenId`を入れるようにします
+- token = request.data['tokenId'] : 後でフロントでHTTPリクエストを送信する処理を作るときに、リクエストボディに`tokenId`を入れるようにします
 
 - id_token.verify_oauth2_token(token, request, audience) : この処理の核の部分です 第1引数のトークンを検証し、デコードしてくれます
   - token : JWTトークンが入ります String
   - request : [公式](https://google-auth.readthedocs.io/en/master/reference/google.oauth2.id_token.html)によると`google-auth`が様々なHTTPクライアントを受け付けるために必要みたいです
   - audience : GCPで発行したOAuth2のClient_IDのことです
 
-- return Response(user_google_info) : ついに丸裸になったデータをフロントに返します
+google-authの詳細については[こちら](https://google-auth.readthedocs.io/en/master/)を確認してみてください
+
+- return Response(user_google_info) : デコードされて丸裸になったデータをフロントに返します
 
 ### URL登録
 
 作ったViewにURLを振ります
 
-```py:/users/urls.py
-from django.urls import path, include
-from rest_framework import routers
-from . import views
-from .views import RegisterUser
+まずusersのurlをプロジェクトのurlに読み込ませます
 
-router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
+```py:backend/urls.py
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('admin/', admin.site.urls),
+    path('auth/', include('drf_social_oauth2.urls', namespace='drf')),
+    path('', include('users.urls')), #
+]
+```
+
+usersのurlは↓の通りです
+
+```py:users/urls.py
+from django.urls import path, include
+from . import views
+
+urlpatterns = [
     path('verify-token/', views.verifyToken, name='verify-token'), # 追加
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
 ```
 
@@ -125,7 +164,7 @@ $ pip install httpie
 tokenId(jwt)をデコードしたものがレスポンスで返ってきます
 
 ```sh
-$ tokenId="tokenIdをコピペしてください"
+$ tokenId="tokenIdをコピペ"
 
 $ http POST http://127.0.0.1:8000/verify-token/ "Authorization: Bearer <ここにaccess_tokenをコピペ>" tokenId=${tokenId}
 
@@ -147,13 +186,13 @@ X-Frame-Options: DENY
     "email": "youremailaddress@gmail.com",
     "email_verified": true,
     "exp": 1643907574,
-    "family_name": "Family name",
-    "given_name": "Given name",
+    "family_name": "苗字",
+    "given_name": "名前",
     "iat": 1643903974,
     "iss": "accounts.google.com",
     "jti": "ec1824~~~",
     "locale": "ja",
-    "name": "Your Name",
+    "name": "苗字 名前",
     "picture": "https://lh3.googleusercontent.com/~~~~~",
     "sub": "103796~~~~"
 }
@@ -300,10 +339,23 @@ export default App;
 ステートの中身がない、つまり未ログインの場合は、<GoogleLogin>ボタンを表示させます
 ステートの中身がある、つまりログイン済の場会は、ユーザ名とemail、ユーザのGoogleの登録画像を表示させます
 
-# 完了
+# part4 終了
 
-お疲れ様でした！ログイン処理完了です
-[次のパート](./part5.md)ではユーザ登録を作っていきます
+お疲れ様でした
+
+`Googleから取得した認証tokenをDRFでconvert`
+→`convertされたトークンをヘッダに付与することでpermissionを設定した関数を実行する`
+この流れを理解できたのではないでしょうか
+
+Djangoで`@login_required`のデコレータを付けた関数を
+DRF×OAuthでやるにはどうするかというイメージですね
+
+まだこの実装は不完全です
+Googleから送られてきた認証情報をデコードしてそのままフロントで表示しているだけなので、
+DjangoのDBにユーザデータが登録されていなくても表示できちゃうんですよね
+あと、python_social_authの機能で、未登録のユーザも自動でユーザ登録されて表示できるようになっちゃいます
+
+そのあたりの修正含めて、[次のパート](./part5.md)でユーザ登録機能を作っていきます
 
 
 余談ですが、
