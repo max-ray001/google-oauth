@@ -16,7 +16,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 class CustomUserAdmin(UserAdmin):
 	fieldsets = (
-		(None, {'fields': ('username', 'email', 'password')}),
+		(None, {'fields': ('username', 'email', 'password', 'image_url')}),
 		(_('Permissions'), {
 			'fields': (
 				'is_active',
