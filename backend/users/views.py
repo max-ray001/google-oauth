@@ -29,7 +29,7 @@ class RegisterUser(generics.CreateAPIView):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def verifyToken(request):
     req = requests.Request()
     token = request.data['tokenId']
