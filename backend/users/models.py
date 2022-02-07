@@ -10,6 +10,7 @@ class CustomUserManager(BaseUserManager):
 	def _create_user(self, request_data, **extra_fields):
 		if not request_data['email']:
 			raise ValueError('emailを入力してください')
+<<<<<<< HEAD
 		email = self.normalize_email(request_data['email'])
 		user = self.model(username=request_data['username'], email=email, **extra_fields)
 		user.set_password(request_data['password'])
@@ -17,6 +18,20 @@ class CustomUserManager(BaseUserManager):
 		return user
 
 	def create_user(self, request_data, **extra_fields):
+=======
+		if not username:
+			raise ValueError('usernameを入力してください')
+		email = self.normalize_email(email)
+		user = self.model(
+			username=username,
+			email=email,
+			**extra_fields
+		)
+		user.save(using=self.db)
+		return user
+
+	def create_user(self, username, email,**extra_fields):
+>>>>>>> 6886aec2f16134270d759ae893f138181ded6537
 		extra_fields.setdefault('is_staff', False)
 		extra_fields.setdefault('is_superuser', False)
 		return self._create_user(request_data, **extra_fields)
@@ -34,6 +49,10 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 	email = models.EmailField('email', null=True)
 	username = models.CharField('username', unique=True, max_length=150)
+<<<<<<< HEAD
+=======
+	image_url = models.URLField('imageUrl', blank=True, max_length=200)
+>>>>>>> 6886aec2f16134270d759ae893f138181ded6537
 	is_staff = models.BooleanField('is_staff', default=False)
 	is_active = models.BooleanField('is_active', default=True)
 	date_joined = models.DateTimeField('date_joined', default=timezone.now)
