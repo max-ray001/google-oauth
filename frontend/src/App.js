@@ -16,6 +16,7 @@ function App() {
 
   const convertToken = async (googleData) => {
 		const token = googleData.accessToken
+    console.log(token)
 		return await axios
 			.post(`${baseURL}/auth/convert-token`, {
 				token: token,
@@ -35,27 +36,55 @@ function App() {
 			})
 	}
 
-	const verifyToken = async (googleToken, drfToken) => {
-		const token = googleToken
-		return await axios
+  const verifyToken = async (googleToken) => {
+    const token = googleToken
+    return await axios
       .post(`${baseURL}/verify-token/`,
-				{ tokenId: token.tokenId },
-				{ headers: { Authorization: `Bearer ${drfToken}` } }
-			)
-			.then((res) => {
-				const user_google_info = res.data
-				return user_google_info
-			})
-			.catch((err) => {
-				console.log("Error Verify Token", err)
-			})
-	}
+		    { tokenId: token.tokenId },
+	    )
+	    .then((res) => {
+		    const user_google_info = res.data
+		    return user_google_info
+	    })
+	    .catch((err) => {
+		    console.log("Error Verify Token", err)
+	    })
+  }
+
+  const registerUser = async (user_data) => {
+    console.log(user_data)
+    const username = user_data['name']
+    const email = user_data['email']
+    const image_url = user_data['picture']
+    console.log(username, email, image_url)
+    return await axios
+      .post(`${baseURL}/register/`, {
+          username: username,
+          email: email,
+          image_url: image_url
+        },
+      )
+      .then((res) => {
+        return res
+      })
+      .catch((err) => {
+        console.log("Error Regigster User", err)
+      })
+  }
 
 	const handleGoogleLogin = async (response) => {
 		const googleToken = response
 		const drfAccessToken = await convertToken(googleToken)
 		const user_data = await verifyToken(googleToken, drfAccessToken)
 		setUserGoogleData(user_data)
+	}
+
+	const handleGoogleSignIn = async (googleData) => {
+		console.log(googleData)
+    const googleToken = googleData
+    const user_data = await verifyToken(googleToken)
+    const data = await registerUser(user_data)
+    console.log(data)
 	}
 
   return (
@@ -69,15 +98,23 @@ function App() {
 							<img src={userGoogleData.picture} />
 						</div>
 					) : (
-						<GoogleLogin
-							clientId={googleClientId}
-							buttonText="Googleアカウントでログイン"
-							onSuccess={(response) => handleGoogleLogin(response)}
-							onFailure={(err) => console.log("Google Login failed", err)}
-						></GoogleLogin>
+						<div>
+							<GoogleLogin
+								clientId={googleClientId}
+								buttonText="Googleアカウントでログイン"
+								onSuccess={(response) => handleGoogleLogin(response)}
+								onFailure={(err) => console.log("Google Login failed", err)}
+							/>
+							<hr/>
+							<GoogleLogin
+								clientId={googleClientId}
+								buttonText="Googleアカウントで登録"
+								onSuccess={(response) => handleGoogleSignIn(response)}
+								onFailure={(err) => console.log("Google SignIn failed.", err)}
+							/>
+						</div>
 					)
 				}
-        
       </header>
     </div>
   );
