@@ -4,14 +4,13 @@ from .models import CustomUser
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	class Meta:
 		model = CustomUser
-		fields = ['username', 'email',]
+		fields = ['username', 'email', 'image_url']
 
 class RegisterUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'image_url']
     
     def create(self, validated_data):
-        username = validated_data['username']
-        email = validated_data['email']
-        return CustomUser.objects.create_user(username, email)
+        request_data = validated_data
+        return CustomUser.objects.create_user(request_data)
