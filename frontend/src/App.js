@@ -12,12 +12,10 @@ const drfClientSecret = process.env.REACT_APP_DRF_CLIENT_RECRET;
 const baseURL = "http://localhost:8000";
 
 function App() {
-	const [ userGoogleData , setUserGoogleData ] = useState("");
 	const [ userDetail, setUserDetail ] = useState("");
 
   const convertToken = async (userAccessToken) => {
 		const token = userAccessToken
-    console.log(token)
 		return await axios
 			.post(`${baseURL}/auth/convert-token`, {
 				token: token,
@@ -89,11 +87,17 @@ function App() {
 			})
 	}
 
-	const handleGoogleLogin = async (response) => {
-		const googleToken = response
-		const drfAccessToken = await convertToken(googleToken)
-		const user_data = await verifyToken(googleToken, drfAccessToken)
-		setUserGoogleData(user_data)
+	const handleGoogleLogin = async (googleData) => {
+
+		// ユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+		// drfAccessTokenを使ってユーザデータ表示
+		const userDetail = await getUserDetail(drfAccessToken)
+
+		// ステート更新
+		setUserDetail(userDetail)
 	}
 
 	const handleGoogleSignUp = async (googleData) => {
