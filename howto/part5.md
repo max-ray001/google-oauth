@@ -6,6 +6,8 @@
 
 1. カスタムユーザモデルの作成
 2. Serializer,ViewSet作成
+3. ユーザ登録用エンドポイントを作成
+4. 登録APIを叩くフロントの関数作成
 
 ## 1. カスタムユーザモデルを作る(Django)
 
@@ -390,9 +392,6 @@ X-Frame-Options: DENY
 →`Google認証情報が返ってくる`
 →`tokenIdをデコード`
 →`登録エンドポイントを叩く`
-→`Google認証の中のaccessTokenをaccess_tokenに変換する`
-→`デコードされた情報とaccess_tokenを元にユーザデータを返すエンドポイントを叩く`
-→`フロントでユーザ情報を表示`
 
 ### ボタンとボタンを押したときの処理作成
 
@@ -400,7 +399,7 @@ X-Frame-Options: DENY
 まずはボタンを表示します
 
 ```js:App.js
-	const handleGoogleSignIn = async (googleData) => {
+	const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
 	}
 
@@ -426,8 +425,8 @@ X-Frame-Options: DENY
 							<GoogleLogin
 								clientId={googleClientId}
 								buttonText="Googleアカウントで登録"
-								onSuccess={(response) => handleGoogleSignIn(response)}
-								onFailure={(err) => console.log("Google SignIn failed.", err)}
+								onSuccess={(response) => handleGoogleSignUp(response)}
+								onFailure={(err) => console.log("Google SignUp failed.", err)}
 							/>
 						</div>
 					)
@@ -443,7 +442,7 @@ X-Frame-Options: DENY
 ボタンができたら、ユーザのGoogleデータをデコードしてユーザ名とメールアドレス、プロフ画像を拝借します
 
 ```js:App.js
-	const handleGoogleSignIn = async (googleData) => {
+	const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
     const googleToken = googleData
     const user_data = await verifyToken(googleToken)
@@ -503,7 +502,7 @@ App()内に関数(registerUser)を追加します
 		// 略
 	}
 
-	const handleGoogleSignIn = async (googleData) => {
+	const handleGoogleSignUp = async (googleData) => {
 	  console.log(googleData)
       const googleToken = googleData
       const user_data = await verifyToken(googleToken)
@@ -513,7 +512,7 @@ App()内に関数(registerUser)を追加します
 ```
 
 これでGoogle認証→tokenデコード→ユーザ登録まで完了します
-エラーですに201CREATEDが返ってくることが確認出来たら、adminサイトでもユーザが作成されているか確認してみてください
+コンソールに201CREATEDが返ってくることが確認出来たら、adminサイトでもユーザが作成されているか確認してみてください
 
 ### ログインでも登録できてしまう！？
 
@@ -536,7 +535,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_uid',
     'social_core.pipeline.social_auth.auth_allowed',
     'social_core.pipeline.social_auth.social_user',
-    # 'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.get_username',
     # 'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
@@ -544,10 +543,56 @@ SOCIAL_AUTH_PIPELINE = (
 )
 ```
 
-`get_username`,`create_user`のメソッドをコメントアウトすることでユーザ登録機能をスキップできます
+`create_user`のメソッドをコメントアウトすることでユーザ登録機能をスキップできます
 
 - 参考 :
   - [DjangoでGoogleログイン認証【メールバリデーション編】](https://tsukasa-blog.com/programming/social-django-email-validation/)
   - [Pipeline-PythonSocialAuthDocumentation](https://python-social-auth.readthedocs.io/en/latest/pipeline.html)
 
-### ユーザ情報表示
+ただし、このままではconvert-tokenを実行する際にエラーを起こしてしまいます
+pipeline上で`user`オブジェクトを作成しないといけないのですが、その作成を担っている`create_user`関数を外してしまったからです
+このエラーを回避するために、user作成は行わず、userオブジェクトを返すだけの関数を作成して、パイプラインに組み込む必要があります
+
+```py:settings.py
+# Python Social Auth 設定のオーバーライド
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    # 'social_core.pipeline.user.create_user',
+    'users.pipeline.login_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details', # 追加
+)
+```
+
+userアプリ内に`pipeline.py`というファイルを作成します
+
+```py:users/pipeline.py
+from .models import CustomUser
+
+def login_user(response, user=None, *args, **kwargs):
+
+    if not user:
+        email = response['email']
+        username = response['name']
+        login_user = CustomUser.objects.get(username=username, email=email)
+        return {
+            'is_new': False,
+            'user': login_user
+        }
+```
+
+リクエスト内のユーザ情報をもとに、クエリを実行してuserオブジェクトを作成し、returnするようにします
+このあたりについては、[こちら]()の記事で詳しく調査した記事がありますので、気になった方は確認してみてください
+
+# part5 終了
+
+ユーザ登録機能を実装することができました
+
+しかし、まだユーザ情報が画面に出ない状態なので、
+[次のパート](./part6.md)で登録後の処理を作成していきます

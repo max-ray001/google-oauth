@@ -13,9 +13,10 @@ const baseURL = "http://localhost:8000";
 
 function App() {
 	const [ userGoogleData , setUserGoogleData ] = useState("");
+	const [ userDetail, setUserDetail ] = useState("");
 
-  const convertToken = async (googleData) => {
-		const token = googleData.accessToken
+  const convertToken = async (userAccessToken) => {
+		const token = userAccessToken
     console.log(token)
 		return await axios
 			.post(`${baseURL}/auth/convert-token`, {
@@ -40,7 +41,7 @@ function App() {
     const token = googleToken
     return await axios
       .post(`${baseURL}/verify-token/`,
-		    { tokenId: token.tokenId },
+		    { tokenId: token },
 	    )
 	    .then((res) => {
 		    const user_google_info = res.data
@@ -52,11 +53,9 @@ function App() {
   }
 
   const registerUser = async (user_data) => {
-    console.log(user_data)
     const username = user_data['name']
     const email = user_data['email']
     const image_url = user_data['picture']
-    console.log(username, email, image_url)
     return await axios
       .post(`${baseURL}/register/`, {
           username: username,
@@ -65,12 +64,30 @@ function App() {
         },
       )
       .then((res) => {
-        return res
+				const { username, email, image_url } = res.data;
+				return { username, email, image_url }
       })
       .catch((err) => {
         console.log("Error Regigster User", err)
       })
   }
+
+	const getUserDetail = async (accessToken) => {
+		const token = accessToken
+		return await axios
+			.get(`${baseURL}/get-user-detail/`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				}
+			})
+			.then((res) => {
+				const { username, email, image_url } = res.data;
+				return { username, email, image_url }
+			})
+			.catch((err) => {
+				console.log("Error Get User Detail", err)
+			})
+	}
 
 	const handleGoogleLogin = async (response) => {
 		const googleToken = response
@@ -79,12 +96,28 @@ function App() {
 		setUserGoogleData(user_data)
 	}
 
-	const handleGoogleSignIn = async (googleData) => {
+	const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
-    const googleToken = googleData
-    const user_data = await verifyToken(googleToken)
-    const data = await registerUser(user_data)
-    console.log(data)
+
+		// Googleユーザのjwtをデコードする
+    const userJWT = googleData.tokenId
+    const userVerifiedData = await verifyToken(userJWT)
+    
+		// デコードされたデータでユーザ登録を行う
+		const userRegisteredData = await registerUser(userVerifiedData)
+
+		console.log(userRegisteredData)
+
+		// 新規登録されたユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+		console.log(drfAccessToken)
+
+		// drfAccessTokenを使ってユーザデータ表示
+		const userDetail = await getUserDetail(drfAccessToken)
+		console.log(userDetail)
+		setUserDetail(userDetail)
 	}
 
   return (
@@ -92,10 +125,10 @@ function App() {
       <header className="App-header">
         <h1>Google OAuth Test</h1>
 				{
-					userGoogleData ? (
+					userDetail ? (
 						<div>
-							<h2>Hello, {userGoogleData.name} ({userGoogleData.email}) !</h2>
-							<img src={userGoogleData.picture} />
+							<h2>Hello, {userDetail.username} ({userDetail.email}) !</h2>
+							<img src={userDetail.image_url} />
 						</div>
 					) : (
 						<div>
@@ -109,7 +142,7 @@ function App() {
 							<GoogleLogin
 								clientId={googleClientId}
 								buttonText="Googleアカウントで登録"
-								onSuccess={(response) => handleGoogleSignIn(response)}
+								onSuccess={(response) => handleGoogleSignUp(response)}
 								onFailure={(err) => console.log("Google SignIn failed.", err)}
 							/>
 						</div>

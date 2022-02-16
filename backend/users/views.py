@@ -2,6 +2,7 @@ from .models import CustomUser
 from django.db import transaction
 from .serializers import RegisterUserSerializer, UserSerializer
 from rest_framework import viewsets, permissions, generics, status
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from google.oauth2 import id_token
@@ -11,8 +12,13 @@ from decouple import config
 class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     queryset = CustomUser.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
+class GetUserDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated,]
+    def  get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
 
 class RegisterUser(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
