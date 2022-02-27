@@ -6,7 +6,7 @@
 
 1. カスタムユーザモデルの作成
 
-### 1. ユーザ情報を返す関数を作成する(DRF)
+## 1. ユーザ情報を返す関数を作成する(DRF)
 
 ユーザ登録後の処理フローを確認します
 前パートのユーザ登録フローを含めて以下のような感じになります
@@ -78,7 +78,7 @@ X-Frame-Options: DENY
 
 part4などで作成したユーザで試してみてください
 
-### 2. ユーザ情報をリクエストする関数を作成する(React)
+## 2. ユーザ情報をリクエストする関数を作成する(React)
 
 お次はフロントで先ほど作ったAPIを叩く関数を作成します
 
@@ -177,7 +177,7 @@ part4などで作成したユーザで試してみてください
 }
 ```
 
-### 4. ログイン時の挙動も合わせる
+## 4. ログイン時の挙動も合わせる
 
 最後に、ログインボタンを押したときの挙動を合わせます
 
@@ -202,13 +202,124 @@ const handleGoogleLogin = async (googleData) => {
 ログイン時は、convert-tokenで取得したaccessTokenによってユーザ認証が取れているので、
 verifyTokenを実行する必要がないです
 
-### 5. ユーザ情報を保存
+## 5. ユーザ情報を保存
 
 新規登録、ログインまで完成しましたね
-今のところブラウザを更新するとデータが蒸発してログイン画面に戻ってしまいます
 
-ユーザデータをaccess_tokenやrefresh_token同様、localStorageに保存しましょう
+今のところブラウザを更新するとデータが蒸発してログイン画面に戻ってしまうので、
+ローカルストレージにデータを保存するようにします
+
+- stateの初期値を修正
 
 ```js:App.js
+function App() {
+	const [ userDetail, setUserDetail ] = useState(
+		localStorage.getItem('userDetail')
+		 	? JSON.parse(localStorage.getItem('userDetail'))
+		 	: null
+	);
 
+...
 ```
+
+ローカルストレージの中身を見て、値があればそれをuserDetailの初期値として設定します
+無ければ、nullで初期化します
+
+- login,logout処理時にlocalStorageに値を保存
+
+```js:App.js
+	const handleGoogleLogin = async (googleData) => {
+
+		// ユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+		// drfAccessTokenを使ってユーザデータ表示
+		const userDetail = await getUserDetail(drfAccessToken)
+
+		// ステート更新
+		setUserDetail(userDetail)
+
+		// LocalStorageに保存
+		localStorage.setItem('userDetail', JSON.stringify(userDetail)) // 追加
+	}
+
+	const handleGoogleSignUp = async (googleData) => {
+ 
+		// Googleユーザのjwtをデコードする
+    const userJWT = googleData.tokenId
+    const userVerifiedData = await verifyToken(userJWT)
+    
+		// デコードされたデータでユーザ登録を行う
+		const userRegisteredData = await registerUser(userVerifiedData)
+
+		// 新規登録されたユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+		// drfAccessTokenを使ってユーザデータ表示
+		const userDetail = await getUserDetail(drfAccessToken)
+		
+		// ステート更新
+		setUserDetail(userDetail)
+
+		// LocalStorageに保存
+		localStorage.setItem('userDetail', JSON.stringify(userDetail)) // 追加
+	}
+
+	const handleLogout = () => {
+		localStorage.removeItem('userDetail')
+		setUserDetail(null)
+	}
+```
+
+これで更新ボタンを押してもログイン状態が維持できるようになりました！
+
+## 5. ログアウト処理の作成
+
+最後にログアウトボタンを作成します
+
+保存していたステートとlocalstorageを削除するボタンを追加するだけです
+
+```js:App.js
+	const handleLogout = () => {
+		localStorage.removeItem('userDetail')
+		setUserDetail(null)
+	}
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Google OAuth Test</h1>
+				{
+					userDetail ? (
+						<div>
+							<h2>Hello, {userDetail.username} ({userDetail.email}) !</h2>
+							<img src={userDetail.image_url} /><br/>
+							<button onClick={handleLogout}>ログアウト</button>
+						</div>
+					) : (
+						<div>
+							<GoogleLogin
+								clientId={googleClientId}
+								buttonText="Googleアカウントでログイン"
+								onSuccess={(response) => handleGoogleLogin(response)}
+								onFailure={(err) => console.log("Google Login failed", err)}
+							/>
+							<hr/>
+							<GoogleLogin
+								clientId={googleClientId}
+								buttonText="Googleアカウントで登録"
+								onSuccess={(response) => handleGoogleSignUp(response)}
+								onFailure={(err) => console.log("Google SignIn failed.", err)}
+							/>
+						</div>
+					)
+				}
+      </header>
+    </div>
+  );
+```
+
+ついに完成、、、！！！
+

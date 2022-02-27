@@ -12,7 +12,11 @@ const drfClientSecret = process.env.REACT_APP_DRF_CLIENT_RECRET;
 const baseURL = "http://localhost:8000";
 
 function App() {
-	const [ userDetail, setUserDetail ] = useState("");
+	const [ userDetail, setUserDetail ] = useState(
+		localStorage.getItem('userDetail')
+		 	? JSON.parse(localStorage.getItem('userDetail'))
+		 	: null
+	);
 
   const convertToken = async (userAccessToken) => {
 		const token = userAccessToken
@@ -98,11 +102,13 @@ function App() {
 
 		// ステート更新
 		setUserDetail(userDetail)
+
+		// LocalStorageに保存
+		localStorage.setItem('userDetail', JSON.stringify(userDetail))
 	}
 
 	const handleGoogleSignUp = async (googleData) => {
-		console.log(googleData)
-
+ 
 		// Googleユーザのjwtをデコードする
     const userJWT = googleData.tokenId
     const userVerifiedData = await verifyToken(userJWT)
@@ -110,18 +116,23 @@ function App() {
 		// デコードされたデータでユーザ登録を行う
 		const userRegisteredData = await registerUser(userVerifiedData)
 
-		console.log(userRegisteredData)
-
 		// 新規登録されたユーザのGoogle:accessTokenをconvertする
 		const userAccessToken = googleData.accessToken
 		const drfAccessToken = await convertToken(userAccessToken)
 
-		console.log(drfAccessToken)
-
 		// drfAccessTokenを使ってユーザデータ表示
 		const userDetail = await getUserDetail(drfAccessToken)
-		console.log(userDetail)
+		
+		// ステート更新
 		setUserDetail(userDetail)
+
+		// LocalStorageに保存
+		localStorage.setItem('userDetail', JSON.stringify(userDetail))
+	}
+
+	const handleLogout = () => {
+		localStorage.removeItem('userDetail')
+		setUserDetail(null)
 	}
 
   return (
@@ -132,7 +143,8 @@ function App() {
 					userDetail ? (
 						<div>
 							<h2>Hello, {userDetail.username} ({userDetail.email}) !</h2>
-							<img src={userDetail.image_url} />
+							<img src={userDetail.image_url} /><br/>
+							<button onClick={handleLogout}>ログアウト</button>
 						</div>
 					) : (
 						<div>
