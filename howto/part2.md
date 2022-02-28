@@ -38,8 +38,8 @@ python-decouple
 django-cors-headers
 ```
 
-drf_social_oauth2 : DRFでOAuth2の機能を利用するために必要
-python_decouple : .envファイルからデータを取り出すときに必要
+drf_social_oauth2 : DRFでOAuth2の機能を利用するために必要  
+python_decouple : .envファイルからデータを取り出すときに必要  
 django-cors-headers : reactとの連携に必要
 
 - install実行
@@ -193,7 +193,7 @@ TIME_ZONE = 'Asia/Tokyo'
 
 ## 5. 変数設定ファイル作成
 
-GoogleCloudで取得した認証情報のID,シークレットを変数として保存します
+GoogleCloudで取得した認証情報のID,シークレットを変数として保存します  
 .envファイルを作成しましょう
 
 ※プロジェクトのルート(manage.py と同じ階層)に作成します

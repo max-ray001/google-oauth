@@ -10,7 +10,7 @@
 4. フロント画面作成
 5. 動作確認
 
-[前パート](./part2.md)で起動したDjangoは起動したままにして、
+[前パート](./part2.md)で起動したDjangoは起動したままにして、  
 新しいターミナルを開いて作業します
 
 ## 1. React プロジェクト作成
@@ -32,7 +32,7 @@ $ npm i react-google-login axios
 
 ## 3. .env作成
 
-Google Cloudで発行したOIDC鍵の`CLIENT_ID`と、
+Google Cloudで発行したOIDC鍵の`CLIENT_ID`と、  
 [さっき](./part2#管理ページ)Djangoの管理画面で作成したApplicationに記載されていた`Client d`,`Client secret`を変数として格納します
 
 ```sh
@@ -122,10 +122,10 @@ function App() {
 }
 ```
 
-/auth/convert-token に googleで発行されたToken情報(=response.accessToken)を載せてPOSTすると、
+/auth/convert-token に googleで発行されたToken情報(=response.accessToken)を載せてPOSTすると、  
 DRFが`access_token`と`refresh_token`に変換した値をResponseで返してくれる
 
-返ってきた値はステートに保存した後、コンソールログに出力、
+返ってきた値はステートに保存した後、コンソールログに出力、  
 ローカルストレージにそれぞれ保存する
 
 ## 確認
@@ -150,7 +150,7 @@ DRFで変換されたToken情報がコンソールに出てくる
 
 お疲れ様です！
 
-これにてReact,DRFとの連携が完了です
+これにてReact,DRFとの連携が完了です  
 後はJWTの情報をもとにあれやこれやフロントで表示したりするだけですね
 
 [次のパート](./part4.md)からはトークンを利用してログインや新規登録を作っていきます

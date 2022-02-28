@@ -24,7 +24,7 @@ React × Django REST Framework で Googleログインボタンを実装するチ
 
 ## howto
 
-実際の手順については`howto/`ディレクトリ配下にmdファイルを用意したので
+実際の手順については`howto/`ディレクトリ配下にmdファイルを用意したので  
 part1から順番にご覧になってください
 
 ## 環境

@@ -47,8 +47,8 @@ function App() {
 
 分かりやすいようにconvert-tokenをPOSTする部分を関数として切り出します
 
-関数の返り値として、drfで発行した`access_token`を返したいので、
-axios の前に `return` また、.thenで実行される関数でも `return access_token`とします
+関数の返り値として、drfで発行した`access_token`を返したいので、  
+axios の前に `return` また、.thenで実行される関数でも `return access_token`とします  
 これで、convertToken()の返り値が `access_token` になります
 
 - 参考:
@@ -158,9 +158,9 @@ urlpatterns = [
 $ pip install httpie
 ```
 
-[part3](./part3.md)で発行した、googleToken(Iw から始まるjson)の中にある`tokenId`と、
-同じくgoogleTokenの中にあるaccessTokenが、DRFによって変換された値である`access_token`
-この2つをリクエストに含めて、さっき作ったViewにPOSTすると、
+[part3](./part3.md)で発行した、googleToken(Iw から始まるjson)の中にある`tokenId`と、  
+同じくgoogleTokenの中にあるaccessTokenが、DRFによって変換された値である`access_token`  
+この2つをリクエストに含めて、さっき作ったViewにPOSTすると、  
 tokenId(jwt)をデコードしたものがレスポンスで返ってきます
 
 ```sh
@@ -208,8 +208,8 @@ X-Frame-Options: DENY
 
 ### MIDDLE_WARE 修正
 
-この後フロントからAPIをたたく関数を作るのですが、
-corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設定がうまく動かなくなるため、
+この後フロントからAPIをたたく関数を作るのですが、  
+corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設定がうまく動かなくなるため、  
 上に持ってきましょう(上過ぎてもだめらしいのでcommonをcorsheaderの下に持ってきました)
 
 ```py:settings.py
@@ -220,7 +220,7 @@ corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設
 
 ## 3. フロントからAPIをたたく (React)
 
-先ほどは`httpie`を使って情報を取得しましたが、
+先ほどは`httpie`を使って情報を取得しましたが、  
 同じような処理をする関数をフロントに作成します
 
 ```js:App.js
@@ -333,30 +333,30 @@ function App() {
 export default App;
 ```
 
-ステート`userGoogleData`の中身があるかどうかで分岐させます
+ステート`userGoogleData`の中身があるかどうかで分岐させます  
 `{ userGoogleData ? ( ある時の処理 ) : ( ない時の処理 ) }`で表示切替できます
 
-ステートの中身がない、つまり未ログインの場合は、<GoogleLogin>ボタンを表示させます
+ステートの中身がない、つまり未ログインの場合は、<GoogleLogin>ボタンを表示させます  
 ステートの中身がある、つまりログイン済の場会は、ユーザ名とemail、ユーザのGoogleの登録画像を表示させます
 
 # part4 終了
 
 お疲れ様でした
 
-`Googleから取得した認証tokenをDRFでconvert`
-→`convertされたトークンをヘッダに付与することでpermissionを設定した関数を実行する`
+`Googleから取得した認証tokenをDRFでconvert`  
+→`convertされたトークンをヘッダに付与することでpermissionを設定した関数を実行する`  
 この流れを理解できたのではないでしょうか
 
-Djangoで`@login_required`のデコレータを付けた関数を
+Djangoで`@login_required`のデコレータを付けた関数を  
 DRF×OAuthでやるにはどうするかというイメージですね
 
-まだこの実装は不完全です
-Googleから送られてきた認証情報をデコードしてそのままフロントで表示しているだけなので、
-DjangoのDBにユーザデータが登録されていなくても表示できちゃうんですよね
+まだこの実装は不完全です  
+Googleから送られてきた認証情報をデコードしてそのままフロントで表示しているだけなので、  
+DjangoのDBにユーザデータが登録されていなくても表示できちゃうんですよね  
 あと、python_social_authの機能で、未登録のユーザも自動でユーザ登録されて表示できるようになっちゃいます
 
 そのあたりの修正含めて、[次のパート](./part5.md)でユーザ登録機能を作っていきます
 
 
-余談ですが、
+余談ですが、  
 axiosとかstateに全く慣れてなく、この機能実装するのに1週間くらいかかりました、、

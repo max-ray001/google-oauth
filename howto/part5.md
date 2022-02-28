@@ -11,7 +11,7 @@
 
 ## 1. カスタムユーザモデルを作る(Django)
 
-デフォルトのユーザモデルではユーザの画像のフィールドがないため、
+デフォルトのユーザモデルではユーザの画像のフィールドがないため、  
 カスタムユーザモデルを作成します
 
 - users app 作成
@@ -24,7 +24,7 @@ $ python manage.py startapp users
 
 - models.py
 
-作成したusersのmodels.pyを作成していきます
+作成したusersのmodels.pyを作成していきます  
 image_urlというフィールドを作成して、null=Trueにするか、defaultを設定します
 
 ```py:users/models
@@ -50,7 +50,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 		verbose_name_plural = "users"
 ```
 
-カスタムユーザモデルを使ってUserを作成するためにはカスタムユーザマネージャも必要です
+カスタムユーザモデルを使ってUserを作成するためにはカスタムユーザマネージャも必要です  
 ※通常ユーザに関しては、認証をOAuthで行うことを前提としているのでパスワードの設定はないです
 
 ```py:users/models.py
@@ -96,7 +96,7 @@ class User():
 
 - db削除→再度migration
 
-最初に作ったsuperuserはデフォのUserクラスで作成されちゃっててもうどうしようもないので、
+最初に作ったsuperuserはデフォのUserクラスで作成されちゃっててもうどうしようもないので、  
 いったんDB削除して作成しなおす
 
 ```shell
@@ -114,12 +114,12 @@ $ python manage.py createsuperuser
 
 - drftoken再登録
 
-DBを消しちゃったので、[part2](./part2.md#管理ページ)で作成した`Application`がなくなってます
+DBを消しちゃったので、[part2](./part2.md#管理ページ)で作成した`Application`がなくなってます  
 **再作成して、.envファイルの変更を忘れず行いましょう**
 
 - (オプション)Adminサイトで確認できるようにする
 
-DRFでは基本的にAPIを介してユーザの作成・変更・削除を行うことになるので、
+DRFでは基本的にAPIを介してユーザの作成・変更・削除を行うことになるので、  
 adminへの登録は不要といえば不要です
 
 ```py:users/admin.py
@@ -174,7 +174,7 @@ admin.site.register(CustomUser, CustomUserAdmin)
 
 ## 2. Serializer & ViewSet & url を作成
 
-DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラス, ViewSetクラスを作成します
+DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラス, ViewSetクラスを作成します  
 `users/`配下に`serializers.py`という名前のファイルを新規作成して、↓のように書きます
 
 ```py:users/serializers.py
@@ -242,15 +242,15 @@ X-Frame-Options: DENY
 
 はい `401(Unauthorized)コード, 認証情報が含まれていません` と返ってきましたね
 
-これはなぜかというと、
-UserViewSetの`permission_class`を**IsAuthenticated**にしたためです
-part4ではさらっと飛ばしちゃいましたが、
-これは、UserViewSetに対して操作(GET, PUT, UPDATE, DELETE..)を行えるのが、`認証されたユーザのみ`ということになります
+これはなぜかというと、  
+UserViewSetの`permission_class`を**IsAuthenticated**にしたためです  
+part4ではさらっと飛ばしちゃいましたが、  
+これは、UserViewSetに対して操作(GET, PUT, UPDATE, DELETE..)を行えるのが、`認証されたユーザのみ`ということになります  
 
-ではどうやって認証された状態でリクエストを送れるのか、、、
+ではどうやって認証された状態でリクエストを送れるのか、、、  
 ここでpart3で発行できるようになった`access_token`を使うわけですね！！
 
-リクエストの`Authorization`ヘッダーに、Google認証→DRFトークン変換(convert-token)によって発行されたトークンをはっつけてリクエストを送ってみましょう
+リクエストの`Authorization`ヘッダーに、Google認証→DRFトークン変換(convert-token)によって発行されたトークンをはっつけてリクエストを送ってみましょう  
 `Authorization: Bearer <access_token>` でヘッダーを付与できます
 
 ```sh
@@ -302,7 +302,7 @@ urlpatterns = [
 
 ### Viewの作成
 
-URLで指定したように、`RegisterUser`というViewを作成します
+URLで指定したように、`RegisterUser`というViewを作成します  
 変更箇所が`#`です
 
 ```py:users/views.py
@@ -349,8 +349,8 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return CustomUser.objects.create_user(username, email, image_url)
 ```
 
-viewで、`serializer.is_valid()`でserializerのデータが検証された後、
-serializerのデータが返されます
+viewで、`serializer.is_valid()`でserializerのデータが検証された後、  
+serializerのデータが返されます  
 返されたデータによってcreate_user関数が動き、ユーザ登録が実行されます
 
 登録関連の機能は[こちらの記事](https://qiita.com/xKxAxKx/items/60e8fb93d6bbeebcf065)で紹介されているものを参考にさせてもらいました
@@ -395,7 +395,7 @@ X-Frame-Options: DENY
 
 ### ボタンとボタンを押したときの処理作成
 
-少しずつ作っていきましょう
+少しずつ作っていきましょう  
 まずはボタンを表示します
 
 ```js:App.js
@@ -452,7 +452,7 @@ X-Frame-Options: DENY
 
 ログインと同じですね
 
-ただ、[part4](./part4.md)の時はaccess_tokenを取得してからverifyTokenを実行していましたが、
+ただ、[part4](./part4.md)の時はaccess_tokenを取得してからverifyTokenを実行していましたが、  
 今回は順序が逆なので、permissionを`IsAuthenticated`にしていると認証できずにviewを実行できません
 
 verifyTokenのpermissionは`AllowAny`に変更します
@@ -511,7 +511,7 @@ App()内に関数(registerUser)を追加します
 	}
 ```
 
-これでGoogle認証→tokenデコード→ユーザ登録まで完了します
+これでGoogle認証→tokenデコード→ユーザ登録まで完了します  
 コンソールに201CREATEDが返ってくることが確認出来たら、adminサイトでもユーザが作成されているか確認してみてください
 
 ### ログインでも登録できてしまう！？
@@ -520,11 +520,11 @@ App()内に関数(registerUser)を追加します
 
 これに関しては、[part1](./part1.md)で`settings.py`に設定した`drf_social_oauth2`が関係してきます
 
-[drf_social_oauth2](https://github.com/wagnerdelima/drf-social-oauth2)は[python social auth](https://python-social-auth.readthedocs.io/en/latest/)を継承しており、
+[drf_social_oauth2](https://github.com/wagnerdelima/drf-social-oauth2)は[python social auth](https://python-social-auth.readthedocs.io/en/latest/)を継承しており、  
 その`python social auth`の`pipeline`という機能で、ユーザの新規登録がデフォルトで備わっています
 
-今回は自前でカスタムユーザを作ってそちらで処理したいので、
-この機能は設定を切っておきましょう
+今回は自前でカスタムユーザを作ってそちらで処理したいので、  
+この機能は設定を切っておきましょう  
 ↓のように`settings.py`に追加することで設定をオーバーライドできます
 
 ```py:settings.py
@@ -549,8 +549,8 @@ SOCIAL_AUTH_PIPELINE = (
   - [DjangoでGoogleログイン認証【メールバリデーション編】](https://tsukasa-blog.com/programming/social-django-email-validation/)
   - [Pipeline-PythonSocialAuthDocumentation](https://python-social-auth.readthedocs.io/en/latest/pipeline.html)
 
-ただし、このままではconvert-tokenを実行する際にエラーを起こしてしまいます
-pipeline上で`user`オブジェクトを作成しないといけないのですが、その作成を担っている`create_user`関数を外してしまったからです
+ただし、このままではconvert-tokenを実行する際にエラーを起こしてしまいます  
+pipeline上で`user`オブジェクトを作成しないといけないのですが、その作成を担っている`create_user`関数を外してしまったからです  
 このエラーを回避するために、user作成は行わず、userオブジェクトを返すだけの関数を作成して、パイプラインに組み込む必要があります
 
 ```py:settings.py
@@ -587,12 +587,12 @@ def login_user(response, user=None, *args, **kwargs):
         }
 ```
 
-リクエスト内のユーザ情報をもとに、クエリを実行してuserオブジェクトを作成し、returnするようにします
+リクエスト内のユーザ情報をもとに、クエリを実行してuserオブジェクトを作成し、returnするようにします  
 このあたりについては、[こちら]()の記事で詳しく調査した記事がありますので、気になった方は確認してみてください
 
 # part5 終了
 
 ユーザ登録機能を実装することができました
 
-しかし、まだユーザ情報が画面に出ない状態なので、
+しかし、まだユーザ情報が画面に出ない状態なので、  
 [次のパート](./part6.md)で登録後の処理を作成していきます
