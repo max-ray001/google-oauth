@@ -5,7 +5,7 @@
 ![Google_Login_GIF_demo](./howto/images/google_login_demo.gif)
 
 React × Django REST Framework で Googleログインボタンを実装するチュートリアルです  
-ソーシャルログインボタンの具体的な作例を通じて、サードパーティ認証(OIDC)に関して理解を深めることができます
+ソーシャルログインボタンの具体的な作例を通じて サードパーティ認証(OIDC)に関して理解を深めることができます
 
 </div>
 
