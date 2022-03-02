@@ -1,11 +1,18 @@
+# 【絶対にできる！】Googleログインボタンの実装【1/6】
+
+本記事は、React × DjangoRESTFramework で Googleログインボタン を実装するチュートリアル  
+全6partのうちのpart1です  
+part0(導入偏)は[こちら](./part0.md)
+
 # Part1. Google認証情報作成
 
 ## 0. 流れの理解
 
-このパートの流れは以下の通りです。
+このパートの流れは以下の通りです
 
 1. GoogleCloud でプロジェクト作成
-2. DjangoアプリとGoogleCloudプロジェクトを結びつける認証情報の作成
+2. OAuth同意画面の設定
+3. DjangoアプリとGoogleCloudプロジェクトを結びつける認証情報の作成
 
 ## 1. Google Cloud でプロジェクト作成
 
@@ -60,7 +67,7 @@
 このスコープは、アプリがログインするユーザのどの情報にアクセスできるかを決めるものです  
 よく、`「○○」が「××」へのアクセスを求めてます`って出てきますよね。あれの`「××」`の部分です。
 
-このチュートリアルでは、DjangoRESTframework側で`userinfo.email`,`userinfo.profile`を許可するように設定するので、  
+このチュートリアルでは、**DjangoRESTframework側**で`userinfo.email`,`userinfo.profile`を許可するように設定するので、  
 ここでは設定せずに`保存して次へ`に進んでOKです
 
 ![Agree5](./images/create-new-project-8.png)
@@ -83,7 +90,7 @@
 
 - アプリケーションの種類 : `ウェブ アプリケーション`を選択します  
 - 名前 : OAuth同意画面と同じにしておきます 注意書きにある通りエンドユーザには関係のない部分なので適当でいいでしょう  
-- JS生成元 : `http://localhost:3000` (= React プロジェクトのroot) を指定します 試してないのでわからないですが、ログインを実行するページのURIなのでは  
+- JS生成元 : `http://localhost:3000` (= React プロジェクト) を指定します
 - リダイレクトURI : こちらも `http://localhost:3000` を指定します
 
 入力したら`作成`
