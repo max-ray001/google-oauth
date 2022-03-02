@@ -1,3 +1,10 @@
+# 【絶対にできる！】Googleログインボタンの実装【2/6】
+
+本記事は、React × DjangoRESTFramework で Googleログインボタン を実装するチュートリアル  
+全6partのうちのpart2です  
+part1から読む場合は[こちら](./part1.md)  
+part0(導入偏)は[こちら](./part0.md)
+
 # Part2. バックエンド作成
 
 ## 0. 流れの理解
@@ -38,9 +45,9 @@ python-decouple
 django-cors-headers
 ```
 
-drf_social_oauth2 : DRFでOAuth2の機能を利用するために必要  
+drf_social_oauth2 : DRFでソーシャルログインの機能を利用するために必要  
 python_decouple : .envファイルからデータを取り出すときに必要  
-django-cors-headers : reactとの連携に必要
+django-cors-headers : reactとDjangoでのCORS連携に必要
 
 - install実行
 
@@ -50,7 +57,6 @@ $ pip install -r requirements.txt
 $ pip list
 Package                Version
 ---------------------- --------
-Deprecated             1.2.13
 Django                 3.2.11
 django-cors-headers    3.10.1
 django-oauth-toolkit   1.7.0
@@ -228,6 +234,12 @@ $ python manage.py createsuperuser --email=your.email@gmail.com --username=admin
 
 ## 8. 管理ページ 設定
 
+- サーバ起動
+
+```
+$ python manage.py runserver
+```
+
 `http://127.0.0.1:8000/admin` にアクセスし、作成した管理ユーザでログイン
 
 1. Application を作成
@@ -253,6 +265,7 @@ Django OAuth Toolkit の Application を追加する
 
 ![Convert-Token](./images/create-application-3.png)
 
-# バックエンド設定完了
+# Part2 終了
 
-[フロントエンド設定へ](./part3.md)
+お疲れ様です  
+[次のPart](./part3.md)でフロントエンドの設定を行います
