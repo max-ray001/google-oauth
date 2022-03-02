@@ -263,7 +263,7 @@ function App() {
 	}
 
 	const verifyToken = async (googleToken, drfToken) => {
-		const token = googleToken.tokenId
+		const token = googleToken
 		return await axios
       .post(`${baseURL}/verify-token/`,
 				{ tokenId: token },
@@ -285,7 +285,8 @@ function App() {
 		const drfAccessToken = await convertToken(userAccessToken)
 
     // drfAccessTokenを使ってユーザデータ表示
-		const userDetail = await verifyToken(googleData, drfAccessToken)
+		const userJWT = googleData.tokenId
+		const userDetail = await verifyToken(userJWT, drfAccessToken)
 		setUserDetail(userDetail)
 		console.log(userDetail)
 	}
@@ -332,11 +333,17 @@ function App() {
 		// 略
 	}
 
-	const handleGoogleLogin = async (response) => {
-		const googleToken = response
-		const drfAccessToken = await convertToken(googleToken)
-		const user_data = await verifyToken(googleToken, drfAccessToken)
-		setUserDetail(user_data)
+	const handleGoogleLogin = async (googleData) => {
+
+    // ユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+    // drfAccessTokenを使ってユーザデータ表示
+		const userJWT = googleData.tokenId
+		const userDetail = await verifyToken(userJWT, drfAccessToken)
+		setUserDetail(userDetail)
+		console.log(userDetail)
 	}
 
   return (

@@ -1,3 +1,10 @@
+# 【絶対にできる！】Googleログインボタンの実装【6/6】
+
+本記事は、React × DjangoRESTFramework で Googleログインボタン を実装するチュートリアル  
+全6partのうちのpart6です  
+part1から読む場合は[こちら](./part1.md)  
+part0(導入偏)は[こちら](./part0.md)
+
 # part6. ユーザ情報表示
 
 ## 0. 流れの理解
