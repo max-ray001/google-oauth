@@ -1,3 +1,10 @@
+# 【絶対にできる！】Googleログインボタンの実装【4/6】
+
+本記事は、React × DjangoRESTFramework で Googleログインボタン を実装するチュートリアル  
+全6partのうちのpart4です  
+part1から読む場合は[こちら](./part1.md)  
+part0(導入偏)は[こちら](./part0.md)
+
 # 認証→ユーザ情報表示 (React)
 
 ## 0. 流れの理解
@@ -14,26 +21,26 @@
 ```js:App.js
 function App() {
 
-  const convertToken = async (googleData) => {
-	const token = googleData.accessToken
-	  return await axios
-		.post(`${baseURL}/auth/convert-token`, {
-		  token: token,
-		  backend: "google-oauth2",
-		  grant_type: "convert_token",
-		  client_id: drfClientId,
-		  client_secret: drfClientSecret,
-		})
-		.then((res) => {
-		  const { access_token, refresh_token } = res.data;
-		  localStorage.setItem("access_token", access_token);
-		  localStorage.setItem("refresh_token", refresh_token);
-		  return access_token
-		})
-		.catch((err) => {
-		  console.log("Error Google Login", err);
-		})
-	}
+  const convertToken = async (userAccessToken) => {
+    const token = userAccessToken
+    return await axios
+    .post(`${baseURL}/auth/convert-token`, {
+      token: token,
+      backend: "google-oauth2",
+      grant_type: "convert_token",
+      client_id: drfClientId,
+      client_secret: drfClientSecret,
+    })
+    .then((res) => {
+      const { access_token, refresh_token } = res.data;
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+      return access_token
+    })
+    .catch((err) => {
+      console.log("Error Google Login", err);
+    })
+  }
 
   const handleGoogleLogin = (response) => {
 
@@ -53,7 +60,7 @@ axios の前に `return` また、.thenで実行される関数でも `return ac
 
 - 参考:
   - [axiosでレスポンスを返すメソッドを作成したがコンポーネント側でうまく使用できない](https://teratail.com/questions/235618)
-  - [async/awaitで非同期処理させた結果を返り値としてreturnしたい]https://qiita.com/HorikawaTokiya/items/9822ba5af62b2ba92987)
+  - [async/awaitで非同期処理させた結果を返り値としてreturnしたい](https://qiita.com/HorikawaTokiya/items/9822ba5af62b2ba92987)
 
 
 ## 2. tokenId(jwt)を検証・デコードする関数作成 (Django REST Framework)
@@ -61,13 +68,19 @@ axios の前に `return` また、.thenで実行される関数でも `return ac
 GoogleOAuthで入手したJWTを検証したりデコードしたりするのに便利なライブラリ、
 [google-auth](https://google-auth.readthedocs.io/en/master/index.html)をインストールします
 
+backend, frontエンドは起動したままにして  
+また新しいターミナルを開き、仮想環境に入ります
+
 ```shell
+$ cd ~/
+$ source tutorial/bin/activate
 $ pip install --upgrade google-auth
 ```
 
 ### アプリケーション追加
 
 ```shell
+$ cd backend
 $ python manage.py startapp users
 ```
 
@@ -85,7 +98,7 @@ INSTALLED_APPS = [
 ### View関数作成
 
 ```py:users/views.py
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from google.oauth2 import id_token
@@ -99,12 +112,12 @@ def verifyToken(request):
     token = request.data['tokenId']
     audience = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
     user_google_info = id_token.verify_oauth2_token(token, req, audience)
-    return Response(user_google_info)
+    return Response(user_google_info, status=status.HTTP_200_OK)
 ```
 
 先ほどインストールした`google-auth`を使って検証&デコード処理を作ります
 
-- @api_view(['POST']) : 関数をAPIとして扱うためのデコレータです drfの機能
+- @api_view(['POST']) : 関数をAPIとして扱うためのDRFのデコレータです
 - @permission_classes : api_viewでパーミッションの指定ができるようになるデコレータ 
   - IsAuthenticatedに設定して、認証情報がなければ実行できないようにします
 
@@ -115,7 +128,7 @@ def verifyToken(request):
   - request : [公式](https://google-auth.readthedocs.io/en/master/reference/google.oauth2.id_token.html)によると`google-auth`が様々なHTTPクライアントを受け付けるために必要みたいです
   - audience : GCPで発行したOAuth2のClient_IDのことです
 
-google-authの詳細については[こちら](https://google-auth.readthedocs.io/en/master/)を確認してみてください
+	google-authの詳細については[こちら](https://google-auth.readthedocs.io/en/master/)を確認してみてください
 
 - return Response(user_google_info) : デコードされて丸裸になったデータをフロントに返します
 
@@ -134,6 +147,12 @@ urlpatterns = [
     path('auth/', include('drf_social_oauth2.urls', namespace='drf')),
     path('', include('users.urls')), #
 ]
+```
+
+usersにはurls.pyがないので作成します
+
+```
+$ touch users/urls.py
 ```
 
 usersのurlは↓の通りです
@@ -212,10 +231,20 @@ X-Frame-Options: DENY
 corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設定がうまく動かなくなるため、  
 上に持ってきましょう(上過ぎてもだめらしいのでcommonをcorsheaderの下に持ってきました)
 
-```py:settings.py
-    # installed library
+```py:backend/settings.py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    #'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # 以下追加
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+]
 ```
 
 ## 3. フロントからAPIをたたく (React)
@@ -227,7 +256,7 @@ corsheadersのMiddlewareがdjangoのCommonMiddlewareより下にあるとCORS設
 import { useState } from 'react';
 
 function App() {
-	const [ userGoogleData , setUserGoogleData ] = useState("");
+	const [ userDetail, setUserDetail ] = useState("");
 
   const convertToken = async (googleData) => {
 		// 略
@@ -249,12 +278,16 @@ function App() {
 			})
 	}
 
-	const handleGoogleLogin = async (response) => {
-		const googleToken = response
-		const drfAccessToken = await convertToken(googleToken)
-		const user_data = await verifyToken(googleToken, drfAccessToken)
-		setUserGoogleData(user_data)
-		console.log(user_data)
+	const handleGoogleLogin = async (googleData) => {
+
+    // ユーザのGoogle:accessTokenをconvertする
+		const userAccessToken = googleData.accessToken
+		const drfAccessToken = await convertToken(userAccessToken)
+
+    // drfAccessTokenを使ってユーザデータ表示
+		const userDetail = await verifyToken(googleData, drfAccessToken)
+		setUserDetail(userDetail)
+		console.log(userDetail)
 	}
 
   return (
@@ -264,7 +297,7 @@ function App() {
 - useState : jwtをデコードしたデータをステートで保管します
 
 - verifyToken :
-  - この関数は引数が2つ必要です
+  - この関数は引数が**2つ**必要です
     - 1つは、Google認証で発行したデータの中にある`tokenId` → リクエストボディに付与します
     - もう一つは、convert-tokenで発行された`access_token`です → Authorizationヘッダに付与します
   - const token = googleToken.tokenId : `tokenId`の値を変数に入れます
@@ -276,11 +309,11 @@ function App() {
 - handleGoogleLogin :
   - convertTokenとverifyTokenでログイン処理が行えるようになります
   - handleGoogleLoginはasync/awaitを使って、処理順を指定します convertToken→verifyTokenの順じゃないとうまくいかないはずなので
-  - verifyTokenが完了して返ってきた値はステート`userGoogleData`として保存します
+  - verifyTokenが完了して返ってきた値はステート`userDetail`として保存します
 
 これで実際にReact起動して、ログインボタンを押してみます
 
-Google認証を経て、コンソールに`userGoogleData`のJSONが表示されれば成功！
+Google認証を経て、コンソールに`userDetail`のJSONが表示されれば成功！
 
 
 ## 3. ユーザ情報画面表示
@@ -289,7 +322,7 @@ Google認証を経て、コンソールに`userGoogleData`のJSONが表示され
 
 ```js:App.js
 function App() {
-	const [ userGoogleData , setUserGoogleData ] = useState("");
+	const [ userDetail , setUserDetail ] = useState("");
 
   const convertToken = async (googleData) => {
 		// 略
@@ -303,7 +336,7 @@ function App() {
 		const googleToken = response
 		const drfAccessToken = await convertToken(googleToken)
 		const user_data = await verifyToken(googleToken, drfAccessToken)
-		setUserGoogleData(user_data)
+		setUserDetail(user_data)
 	}
 
   return (
@@ -311,10 +344,10 @@ function App() {
       <header className="App-header">
         <h1>Google OAuth Test</h1>
 				{
-					userGoogleData ? (
+					userDetail ? (
 						<div>
-							<h2>Hello, {userGoogleData.name} ({userGoogleData.email}) !</h2>
-							<img src={userGoogleData.picture} />
+							<h2>Hello, {userDetail.name} ({userDetail.email}) !</h2>
+							<img src={userDetail.picture} />
 						</div>
 					) : (
 						<GoogleLogin
@@ -333,8 +366,8 @@ function App() {
 export default App;
 ```
 
-ステート`userGoogleData`の中身があるかどうかで分岐させます  
-`{ userGoogleData ? ( ある時の処理 ) : ( ない時の処理 ) }`で表示切替できます
+ステート`userDetail`の中身があるかどうかで分岐させます  
+`{ userDetail ? ( ある時の処理 ) : ( ない時の処理 ) }`で表示切替できます
 
 ステートの中身がない、つまり未ログインの場合は、<GoogleLogin>ボタンを表示させます  
 ステートの中身がある、つまりログイン済の場会は、ユーザ名とemail、ユーザのGoogleの登録画像を表示させます
@@ -347,10 +380,10 @@ export default App;
 →`convertされたトークンをヘッダに付与することでpermissionを設定した関数を実行する`  
 この流れを理解できたのではないでしょうか
 
-Djangoで`@login_required`のデコレータを付けた関数を  
-DRF×OAuthでやるにはどうするかというイメージですね
+Djangoで`@login_required`のデコレータを付けた関数と同じようなことを  
+DRF×JWTでやるにはどうするかというイメージですね
 
-まだこの実装は不完全です  
+この段階で満足してしまいそうですが、まだこの実装は不完全です  
 Googleから送られてきた認証情報をデコードしてそのままフロントで表示しているだけなので、  
 DjangoのDBにユーザデータが登録されていなくても表示できちゃうんですよね  
 あと、python_social_authの機能で、未登録のユーザも自動でユーザ登録されて表示できるようになっちゃいます
