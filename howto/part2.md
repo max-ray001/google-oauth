@@ -160,7 +160,13 @@ REST_FRAMEWORK = {
 }
 
 AUTHENTICATION_BACKENDS = (
+    # Google OAuth2 の認証バックエンド
+    'social_core.backends.google.GoogleOAuth2',
+
+    # Django REST framework の認証バックエンド
     'drf_social_oauth2.backends.DjangoOAuth2',
+
+    # Django の認証バックエンド
     'django.contrib.auth.backends.ModelBackend',
 )
 ```
