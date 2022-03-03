@@ -208,7 +208,7 @@ TIME_ZONE = 'Asia/Tokyo'
 GoogleCloudで取得した認証情報のID,シークレットを変数として保存します  
 .envファイルを作成しましょう
 
-※プロジェクトのルート(manage.py と同じ階層)に作成します
+※プロジェクトのルート(`manage.py と同じ階層`)に作成します
 
 ```shell:backend
 $ vi .env
