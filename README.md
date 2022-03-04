@@ -15,12 +15,16 @@ React × Django REST Framework で Googleログインボタンを実装するチ
 
 - `React`で`ソーシャルログイン`ボタンの実装を試してみたい方
 - `Django REST Framework`で`REST API`の使い方を学びたい方
-- `JSON Web Token (JWT)`について理解したい方
 - `OpenID Connect (OIDC)`について理解したい方
-- `HTTPリクエストヘッダー`について理解したい方
 
 というのも この記事とデモアプリの作成過程で  
 僕自身 理解が深まったと感じたためです
+
+## 構成, フロー
+
+![structure](./howto/images/structure.png)
+
+![showUserDetail](./howto/images/showUserDetail.png)
 
 ## howto
 

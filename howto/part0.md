@@ -53,11 +53,11 @@ Googleログインボタンの作り方を調べておりました
 
 かなり簡略化してますが、構成図は以下の通りです
 
-![flow](./images/flow.png)
+![structure](./images/structure.png)
 
 認証フローは下記の通りです
 
-![showUserDetail](./images/Show_userDetail.png)
+![showUserDetail](./images/showUserDetail.png)
 
 ## 前提知識
 
