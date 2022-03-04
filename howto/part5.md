@@ -428,6 +428,8 @@ App()内に関数(registerUser)を追加します
     // tokenIdをデコード
 		const userJWT = googleData.tokenId
 		const userVerifiedData = await verifyToken(userJWT)
+
+		// デコードされたユーザ情報で新規登録
 		const status = await registerUser(userVerifiedData)
 		console.log(status)
 	}
