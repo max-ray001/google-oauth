@@ -16,14 +16,26 @@ part0(導入偏)は[こちら](./part0.md)
 3. ユーザ登録用エンドポイントを作成
 4. 登録APIを叩くフロントの関数作成
 
+![register_flow](./images/register_flow.png)
+
 ## 1. カスタムユーザモデルを作る(Django)
 
-デフォルトのユーザモデルではユーザの画像のフィールドがないため、  
+デモアプリでは、ログインした際にユーザの
+
+- ユーザ名
+- email
+- トップ画像のURL
+
+を表示します
+
+![display_userdata](./images/display_userdata.png)
+
+ただし、デフォルトのユーザモデルでは`ユーザの画像のフィールド`がないため、  
 カスタムユーザモデルを作成します
 
 - settings.py追記
 
-ｋアスタ無ユーザモデルを利用するようにsettings.pyに設定を追加します
+カスタムユーザモデルを利用するようにsettings.pyに設定を追加します
 
 ```py:settings.py
 AUTH_USER_MODEL = 'users.CustomUser'
@@ -32,9 +44,10 @@ AUTH_USER_MODEL = 'users.CustomUser'
 - models.py
 
 [以前のpart](./part4.md)で作成したusersのmodels.pyを作成していきます  
-image_urlというフィールドを作成して、null=Trueにするか、defaultを設定します
+image_urlというフィールドを作成します
 
 ```py:users/models
+from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin,BaseUserManager
 
@@ -58,27 +71,32 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 ```
 
 カスタムユーザモデルを使ってUserを作成するためにはカスタムユーザマネージャも必要です  
-※通常ユーザに関しては、認証をOAuthで行うことを前提としているのでパスワードの設定はないです
 
 ```py:users/models.py
 class CustomUserManager(BaseUserManager):
 	
 	use_in_migrations = True
 
-	def _create_user(self, username, email, image_url, **extra_fields):
-		if not email:
+	def _create_user(self, request_data, password, **extra_fields):
+		if not request_data['email']:
 			raise ValueError('emailを入力してください')
-		if not username:
+		if not request_data['username']:
 			raise ValueError('usernameを入力してください')
-		email = self.normalize_email(email)
-		user = self.model(username=username, email=email, image_url=image_url, **extra_fields)
+		email = self.normalize_email(request_data['email'])
+		user = self.model(
+			username=request_data['username'],
+			email=email,
+			image_url=request_data['image_url'],
+			**extra_fields
+		)
+		user.set_password(password)
 		user.save(using=self.db)
 		return user
 
-	def create_user(self, username, email, image_url, **extra_fields):
+	def create_user(self, request_data, password=None, **extra_fields):
 		extra_fields.setdefault('is_staff', False)
 		extra_fields.setdefault('is_superuser', False)
-		return self._create_user(username, email, image_url, **extra_fields)
+		return self._create_user(request_data, password, **extra_fields)
 	
 	def create_superuser(self, username, email, password, **extra_fields):
 		extra_fields.setdefault('is_staff', True)
@@ -188,86 +206,15 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 ```
 
-## 2. Serializer & ViewSet & url を作成
+admin.pyを書き換えた場合はサーバを起動して管理画面を確認してみましょう
 
-DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラス, ViewSetクラスを作成します  
-`users/`配下に`serializers.py`という名前のファイルを新規作成して、↓のように書きます
-
-```py:users/serializers.py
-from rest_framework import serializers
-from .models import CustomUser
-
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-	class Meta:
-		model = CustomUser
-		fields = ['username', 'email', 'image_url']
+```
+$ python manage.py runserver
 ```
 
-続いてviews.pyを↓の通り作成します
+![confirm_image_url](./images/confirm_image_url.png)
 
-```py:users/views.py
-from .models import CustomUser
-from .serializers import UserSerializer
-from rest_framework import status, viewsets, permissions
-
-class UserViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
-    queryset = CustomUser.objects.all()
-    permission_classes = [permissions.IsAuthenticated] # ←注目
-```
-
-urlはDRFのRouterを使います
-
-```py:usrs/urls.py
-from django.urls import path, include
-from rest_framework import routers #
-from . import views
-
-router = routers.DefaultRouter() #
-router.register(r'users', views.UserViewSet) #
-
-urlpatterns = [
-    path('', include(router.urls)),
-    path('verify-token/', views.verifyToken, name='verify-token'),
-]
-```
-
-### リクエストヘッダについて
-
-APIのテストしてみます
-
-```sh
-$ http GET http://127.0.0.1:8000/users/
-HTTP/1.1 401 Unauthorized
-Allow: GET, POST, HEAD, OPTIONS
-Content-Length: 55
-Content-Type: application/json
-Date: Tue, 01 Feb 2022 12:41:34 GMT
-Referrer-Policy: same-origin
-Server: WSGIServer/0.2 CPython/3.6.8
-Vary: Accept, Origin
-WWW-Authenticate: Bearer realm="api"
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-
-{
-    "detail": "認証情報が含まれていません。"
-}
-```
-
-はい `401(Unauthorized)コード, 認証情報が含まれていません` と返ってきましたね
-
-これはなぜかというと、  
-UserViewSetの`permission_class`を**IsAuthenticated**にしたためです  
-part4ではさらっと飛ばしちゃいましたが、  
-これは、UserViewSetに対して操作(GET, PUT, UPDATE, DELETE..)を行えるのが、`認証されたユーザのみ`ということになります  
-
-ではどうやって認証された状態でリクエストを送れるのか、、、  
-ここで`convert-token`で発行た`access_token`を使うわけですね！
-
-access_tokenってなんだっけ、、ってなった方は[part4](./part4.md)を見返してみてください
-
-## 3. ユーザ登録用エンドポイントを作成する
+## 2. ユーザ登録用エンドポイントを作成する
 
 ### URLの作成
 
@@ -275,15 +222,10 @@ access_tokenってなんだっけ、、ってなった方は[part4](./part4.md)�
 
 ```py:users/urls.py
 from django.urls import path, include
-from rest_framework import routers
 from . import views
 from .views import RegisterUser #
 
-router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
-
 urlpatterns = [
-    path('', include(router.urls)),
 		path('verify-token/', views.verifyToken, name='verify-token'),
     path('register/', RegisterUser.as_view(), name='register'), #
 ]
@@ -295,14 +237,15 @@ URLで指定したように、`RegisterUser`というViewを作成します
 変更箇所が`#`です
 
 ```py:users/views.py
-from .models import CustomUser
+from .models import CustomUser #
 from django.db import transaction #
-from .serializers import RegisterUserSerializer, UserSerializer #
-from rest_framework import viewsets, permissions, generics, status #
-from rest_framework.response import Response #
-
-class UserViewSet(viewsets.ModelViewSet):
-    ## 略
+from rest_framework import permissions, status, generics #
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from decouple import config
+from .serializers import RegisterUserSerializer #
 
 class RegisterUser(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
@@ -316,6 +259,10 @@ class RegisterUser(generics.CreateAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+	# 略
 ```
 
 - permission_classes : ユーザ登録は承認されてない状態で行われるはずなので、AllowAnyにします
@@ -323,9 +270,13 @@ class RegisterUser(generics.CreateAPIView):
 
 ### Serializerの作成
 
-Viewで指定したように、`RegisterUserSerializer`というSerializerを作成します
+DRFでユーザの操作(作成,変更,削除...)を行うにはSerializerクラス, ViewSetクラスを作成します  
+`users/`配下に`serializers.py`という名前のファイルを新規作成して、↓のように書きます
 
 ```py:users/serializers.py
+from rest_framework import serializers
+from .models import CustomUser
+
 class RegisterUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -341,59 +292,6 @@ serializerのデータが返されます
 返されたデータによってcreate_user関数が動き、ユーザ登録が実行されます
 
 登録関連の機能は[こちらの記事](https://qiita.com/xKxAxKx/items/60e8fb93d6bbeebcf065)で紹介されているものを参考にさせてもらいました
-
-### UserManagerモデル修正
-
-serializerで、ユーザの作成のために渡す引数が`request`(辞書型)データとなったため、  
-このままではcreate_userを実行できません
-create_userを行えるように修正します
-
-```py:users/models.py
-class CustomUserManager(BaseUserManager):
-	
-	use_in_migrations = True
-
-	def _create_user(self, request_data, password, **extra_fields):
-		if not request_data['email']:
-			raise ValueError('emailを入力してください')
-		if not request_data['username']:
-			raise ValueError('usernameを入力してください')
-		email = self.normalize_email(request_data['email'])
-		user = self.model(
-			username=request_data['username'],
-			email=email,
-			image_url=request_data['image_url'],
-			**extra_fields
-		)
-		user.set_password(password)
-		user.save(using=self.db)
-		return user
-
-	def create_user(self, request_data, password=None, **extra_fields):
-		extra_fields.setdefault('is_staff', False)
-		extra_fields.setdefault('is_superuser', False)
-		return self._create_user(request_data, password, **extra_fields)
-	
-	def create_superuser(self, username, email, password, **extra_fields):
-		extra_fields.setdefault('is_staff', True)
-		extra_fields.setdefault('is_superuser', True)
-		if extra_fields.get('is_staff') is not True:
-			raise ValueError('staffがTrueではないです')
-		if extra_fields.get('is_superuser') is not True:
-			raise ValueError('is_superuserがTrueではないです')
-		if not email:
-			raise ValueError('emailを入力してください')
-		if not username:
-			raise ValueError('usernameを入力してください')
-		email = self.normalize_email(email)
-		user = self.model(username=username, email=email, **extra_fields)
-		user.set_password(password)
-		user.save(using=self.db)
-		return user
-```
-
-引数にrequest_dataを取るようにして、  
-変数にはrequest_data内のデータをそれぞれ格納していきます
 
 ### APIを試す
 
@@ -423,10 +321,12 @@ X-Frame-Options: DENY
 
 201(created)レスポンスが返ってきましたね！ HTTPリクエストによる登録まではできました
 
-
 ## 4. フロントでAPIを叩く
 
-フロントの関数を作っていきます フローは以下の通りです
+フロントの関数を作っていきます  
+以下のフローを思い出してください
+
+![register_flow](./images/register_flow.png)
 
 `ボタン押す`  
 →`Google認証情報が返ってくる`  
@@ -439,7 +339,11 @@ X-Frame-Options: DENY
 まずはボタンを表示します
 
 ```js:App.js
-	const handleGoogleSignUp = async (googleData) => {
+  const handleGoogleLogin = async (googleData) => {
+    // 略
+	}
+
+  const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
 	}
 
@@ -447,91 +351,45 @@ X-Frame-Options: DENY
     <div className="App">
       <header className="App-header">
         <h1>Google OAuth Test</h1>
-				{
-					userDetail ? (
-						<div>
-							<h2>Hello, {userDetail.name} ({userDetail.email}) !</h2>
-							<img src={userDetail.picture} />
-						</div>
-					) : (
-						<div>
-							<GoogleLogin
-								clientId={googleClientId}
-								buttonText="Googleアカウントでログイン"
-								onSuccess={(response) => handleGoogleLogin(response)}
-								onFailure={(err) => console.log("Google Login failed", err)}
-							/>
-							<hr/>
-							<GoogleLogin
-								clientId={googleClientId}
-								buttonText="Googleアカウントで登録"
-								onSuccess={(response) => handleGoogleSignUp(response)}
-								onFailure={(err) => console.log("Google SignUp failed.", err)}
-							/>
-						</div>
-					)
-				}
+        <div>
+          <GoogleLogin
+            clientId={googleClientId}
+            buttonText="Googleアカウントでログイン"
+            onSuccess={(response) => handleGoogleLogin(response)}
+            onFailure={(err) => console.log("Google Login failed", err)}
+          />
+          <hr/>
+          <GoogleLogin
+            clientId={googleClientId}
+            buttonText="Googleアカウントで登録"
+            onSuccess={(response) => handleGoogleSignUp(response)}
+            onFailure={(err) => console.log("Google SignUp failed.", err)}
+          />
+				</div>
       </header>
     </div>
   );
 }
 ```
 
+![register_button](./images/register_button.png)
+
 ### デコード
 
 ボタンができたら、ユーザのGoogleデータをデコードしてユーザ名とメールアドレス、プロフ画像を拝借します
 
 ```js:App.js
-	const handleGoogleSignUp = async (googleData) => {
+  const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
-    const googleToken = googleData.tokenId
-    const userDetail = await verifyToken(googleToken)
-    console.log(userDetail)
+    
+    // tokenIdをデコード
+		const userJWT = googleData.tokenId
+		const userDetail = await verifyToken(userJWT)
+		console.log(userDetail)
 	}
 ```
 
-ログインと同じですね
-
-ただ、[part4](./part4.md)の時はaccess_tokenを取得してからverifyTokenを実行していましたが、  
-今回は順序が逆なので、permissionを`IsAuthenticated`にしていると認証できずにviewを実行できません
-
-verifyTokenのpermissionは`AllowAny`に変更します
-
-```py:backend/users/views.py
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny]) #
-def verifyToken(request):
-    req = requests.Request()
-    token = request.data['tokenId']
-    audience = config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
-    user_google_info = id_token.verify_oauth2_token(token, req, audience)
-    return Response(user_google_info, status=status.HTTP_200_OK)
-```
-
-フロントのverify関数も、認証ヘッダが不要になったので修正します
-
-```js:App.js
-	const verifyToken = async (googleToken) => {
-		const token = googleToken
-		return await axios
-			.post(`${baseURL}/verify-token/`,
-				{ tokenId: token },
-			)
-			.then((res) => {
-				const user_google_info = res.data
-				return user_google_info
-			})
-			.catch((err) => {
-				console.log("Error Verify Token", err)
-			})
-	}
-```
-
-drfTokenの部分を削ってます
-
-この状態で登録ボタンを押してみます
-
-userDetailが返ってくるので、この情報をもとに/registerで登録を行います
+ここまではログインと同じですね
 
 ### 登録エンドポイントを叩く
 
@@ -566,26 +424,38 @@ App()内に関数(registerUser)を追加します
 
 	const handleGoogleSignUp = async (googleData) => {
 		console.log(googleData)
-		const googleToken = googleData.tokenId
-		const userVerifiedData = await verifyToken(googleToken)
+
+    // tokenIdをデコード
+		const userJWT = googleData.tokenId
+		const userVerifiedData = await verifyToken(userJWT)
 		const status = await registerUser(userVerifiedData)
 		console.log(status)
 	}
 ```
 
 これでGoogle認証→tokenデコード→ユーザ登録まで完了します  
-コンソールに201CREATEDが返ってくることが確認出来たら、adminサイトでもユーザが作成されているか確認してみてください
+コンソールに201CREATEDが返ってくることが確認出来たら、  
+adminサイトでもユーザが作成されているか確認してみてください
 
-### ログインでも登録できてしまう！？
+![confirm_register](./images/confirm_register.png)
 
-登録ボタンを作りましたが、実は以前作ったログインボタンでも  
-デフォルトのユーザモデルだとユーザ登録ができてしまいます  
+### 登録なのに`<GoogleLogin>`?
+
+ここまで、登録ボタンを作りました  
+ログインボタンを押してみた方は、今まで問題なかったのにエラーが出るようになっていることが分かると思います
+
+![error_convert-token](./images/error_convert-token.png)
+
+_↑convert-tokenができなくなってる_
 
 これに関しては、[part1](./part1.md)で`settings.py`に設定した`drf_social_oauth2`が関係してきます
 
 [drf_social_oauth2](https://github.com/wagnerdelima/drf-social-oauth2)は[python social auth](https://python-social-auth.readthedocs.io/en/latest/)を継承しており、  
-その`python social auth`の`pipeline`という機能で、ユーザの新規登録がデフォルトで備わっています
+その`python social auth`の`pipeline`という機能で、**ユーザの新規登録がデフォルトで備わっています**
 
+登録機能なのに<Google**Login**>だったのはこのためですね
+
+ただし、python social authデフォルトの登録機能ですが、**Djangoデフォルトのユーザモデルしか対応していません**
 今はすでにカスタムユーザモデルに変更したので、未登録時にログインボタンを押すと下記エラーが出ると思います
 
 ```
@@ -610,6 +480,7 @@ SOCIAL_AUTH_PIPELINE = (
     # 'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
+		'social_core.pipeline.user.user_details',
 )
 ```
 
@@ -619,9 +490,12 @@ SOCIAL_AUTH_PIPELINE = (
   - [DjangoでGoogleログイン認証【メールバリデーション編】](https://tsukasa-blog.com/programming/social-django-email-validation/)
   - [Pipeline-PythonSocialAuthDocumentation](https://python-social-auth.readthedocs.io/en/latest/pipeline.html)
 
-ただし、このままではconvert-tokenを実行する際にエラーを起こしてしまいます  
-pipeline上で`user`オブジェクトを作成しないといけないのですが、その作成を担っている`create_user`関数を外してしまったからです  
-このエラーを回避するために、user作成は行わず、userオブジェクトを返すだけの関数を作成して、パイプラインに組み込む必要があります
+ただし、このままではまだconvert-tokenを実行する際にエラーを起こしてしまいます  
+**pipeline上で`user`オブジェクトを作成しないといけないのですが、その作成を担っている`create_user`関数を外してしまったからです**  
+このエラーを回避するために、`user作成自体は行わず、userオブジェクトを返すだけの関数`を作成して、**パイプラインに組み込む**必要があります
+
+pipeline上には`独自の関数`を組み込むことができるので、  
+下記の通り追加します
 
 ```py:settings.py
 # Python Social Auth 設定のオーバーライド
@@ -633,10 +507,10 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_user',
     'social_core.pipeline.user.get_username',
     # 'social_core.pipeline.user.create_user',
-    'users.pipeline.login_user',
+    'users.pipeline.login_user', # 追加
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details', # 追加
+    'social_core.pipeline.user.user_details',
 )
 ```
 
@@ -659,6 +533,9 @@ def login_user(response, user=None, *args, **kwargs):
 
 リクエスト内のユーザ情報をもとに、クエリを実行してuserオブジェクトを作成し、returnするようにします  
 このあたりについては、[こちら](https://qiita.com/cokemaniaIIDX/items/c8b19fc03189e0995ad1)の記事で詳しく調査したものをまとめたので、気になった方は確認してみてください
+
+ここまで修正できたら`Googleでログイン`ボタンを押してみて、  
+ユーザの情報がJSONでコンソールに表示できるようになっていることを確認してみてください
 
 # part5 終了
 

@@ -55,6 +55,10 @@ Googleログインボタンの作り方を調べておりました
 
 ![flow](./images/flow.png)
 
+認証フローは下記の通りです
+
+![showUserDetail](./images/Show_userDetail.png)
+
 ## 前提知識
 
 下記の知識があると本記事は理解しやすいと思います  
