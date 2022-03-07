@@ -11,10 +11,10 @@ part0(導入偏)は[こちら](./part0.md)
 
 このpartの流れは以下の通りです。
 
-1. convert-token関数 分離
-2. Google認証情報のデコード関数作成
-3. デコード関数を実行するフロント関数作成
-4. ユーザ情報表示
+1. djangoにてusersアプリ作成
+2. view関数作成
+3. APIテスト
+4. APIを叩くフロントの関数を作成
 
 ## 1. tokenId(jwt)を検証・デコードする関数作成 (Django REST Framework)
 
@@ -185,7 +185,7 @@ X-Frame-Options: DENY
   - verify-token/ : 最後に`/(スラッシュ)`を入れないとエラーが起こってしまいます このあたり自動で補完してほしいがやり方が分からない、、
   - tokenId : このtokenIdはリクエストのボディとして送信します
 
-## 3. フロントからAPIをたたく (React)
+## 2. フロントからAPIをたたく (React)
 
 ### MIDDLE_WARE 修正
 
